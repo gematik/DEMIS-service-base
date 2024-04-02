@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<configuration>
+
+    <springProfile name="!local">
+        <springProperty scope="context" name="SERVICE_NAME" source="info.app.name"/>
+        <appender name="std-log" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+                <providers>
+                    <timestamp>
+                        <timeZone>Europe/Berlin</timeZone>
+                    </timestamp>
+                    <pattern>
+                        <pattern>
+                            {
+                            "service": "${SERVICE_NAME:-}",
+                            "severity": "%level",
+                            "trace": "%X{traceId:-}",
+                            "span": "%X{spanId:-}",
+                            "baggage": "%X{key:-}",
+                            "pid": "${PID:-}",
+                            "thread": "%thread",
+                            "class": "%logger{40}",
+                            "rest": "%message",
+                            "exc": "%exception"
+                            }
+                        </pattern>
+                    </pattern>
+                </providers>
+            </encoder>
+        </appender>
+        <variable name="ROOT_LOG_LEVEL" value="${ROOT_LOG_LEVEL:-INFO}"/>
+        <root level="${ROOT_LOG_LEVEL}">
+            <appender-ref ref="std-log"/>
+        </root>
+    </springProfile>
+
+    <springProfile name="local">
+        <property name="CONSOLE_LOG_PATTERN" value="${CONSOLE_LOG_PATTERN:-%clr(%d{${LOG_DATEFORMAT_PATTERN:-HH:mm:ss.SSS}}){faint} %clr(${LOG_LEVEL_PATTERN:-%5p}) %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}}"/>
+        <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+        <include resource="org/springframework/boot/logging/logback/console-appender.xml" />
+        <root level="INFO">
+            <appender-ref ref="CONSOLE" />
+        </root>
+    </springProfile>
+
+</configuration>

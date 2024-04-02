@@ -1,0 +1,40 @@
+spring:
+    mvc:
+        log-resolved-exception: false
+    jackson:
+        time-zone: Europe/Berlin
+
+server:
+    error:
+        whitelabel:
+            enabled: false
+
+management:
+    info:
+        env:
+            # Enable Exposing of Information over /actuator/info
+            enabled: true
+    endpoints:
+        enabled-by-default: false
+        web:
+            exposure:
+                include: health,info,metrics,prometheus
+    endpoint:
+        info:
+            enabled: true
+        prometheus:
+            enabled: true
+        health:
+            enabled: true
+            probes:
+                enabled: true
+        metrics:
+            enabled: true
+    health:
+        livenessState:
+            enabled: true
+        readinessState:
+            enabled: true
+    tracing:
+        propagation:
+            type: b3_multi

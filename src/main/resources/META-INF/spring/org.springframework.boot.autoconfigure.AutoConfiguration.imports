@@ -1,0 +1,7 @@
+de.gematik.demis.service.base.error.rest.ErrorHandlerConfiguration
+de.gematik.demis.service.base.feign.FeignAnnotationsConfiguration
+de.gematik.demis.service.base.feign.FeignMicrometerConfiguration
+de.gematik.demis.service.base.logging.LoggingConfiguration
+de.gematik.demis.service.base.metrics.MeterAspectConfiguration
+de.gematik.demis.service.base.metrics.ObservationAspectConfiguration
+
