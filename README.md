@@ -1,1 +1,0 @@
-# DEMIS-service-base
