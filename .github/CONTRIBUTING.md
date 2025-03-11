@@ -8,11 +8,11 @@ In this guide you will get an overview how you can contribute to our projects by
 
 ## Reporting a security vulnerability
 
-Please do not report vulnerabilities and security incidents as GitHub issues. Please contact us by sending an E-Mail to [Open Source Program Office](mailto:ospo@gematik.de?subject=[GitHub]%20Validation-Service) or report them using the contact form at https://fachportal.gematik.de/kontaktformular.
+Please do not report vulnerabilities and security incidents as GitHub issues. Please contact us by sending an E-Mail to [Open Source Program Office](mailto:ospo@gematik.de?subject=[GitHub]%20Service-Base) or report them using the contact form at https://fachportal.gematik.de/kontaktformular.
 
 ## New contributor guide
 
-To get an overview of the project, read the [README](README.md).
+To get an overview of the project, read the [README](../README.md).
 
 ## Getting started
 
@@ -40,8 +40,8 @@ Commit the changes once you are happy with them.
 - When you're finished with the changes, create a pull request, also known as a PR.
 - Fill the pull request template so that we can review your PR. This template helps reviewers to understand your changes as well as the purpose of your pull request.
 - Don't forget to [link the PR to the issue](https://docs.github.com/en/issues/tracking-your-work-with-issues/linking-a-pull-request-to-an-issue) if you are solving one.
-- Update the [README.md](README.md), the documentation and the [ReleaseRotes.md](../ReleaseNotes.md) with all details to document the changes made by this PR.
-- Increase the version numbers in any necessary files and the [readme](README.md) to the new version that this
+- Update the [README.md](../README.md), the documentation and the [ReleaseRotes.md](../ReleaseNotes.md) with all details to document the changes made by this PR.
+- Increase the version numbers in any necessary files and the [readme](../README.md) to the new version that this
   Pull Request would represent. The versioning scheme we use is [SemVer](http://semver.org/).
 - Once you submit your PR, a project team member will review your proposal. We may ask questions or request additional information.
 - We may ask for changes to be made before a PR can be merged, either using [suggested changes](https://docs.github.com/en/github/collaborating-with-issues-and-pull-requests/incorporating-feedback-in-your-pull-request)

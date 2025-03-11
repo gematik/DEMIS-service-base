@@ -1,6 +1,11 @@
-/*
- * Copyright [2024], gematik GmbH
- *
+package de.gematik.demis.service.base.feign;
+
+/*-
+ * #%L
+ * service-base
+ * %%
+ * Copyright (C) 2025 gematik GmbH
+ * %%
  * Licensed under the EUPL, Version 1.2 or - as soon they will be approved by the
  * European Commission – subsequent versions of the EUPL (the "Licence").
  * You may not use this work except in compliance with the Licence.
@@ -14,8 +19,7 @@
  * In case of changes by gematik find details in the "Readme" file.
  *
  * See the Licence for the specific language governing permissions and limitations under the Licence.
+ * #L%
  */
-
-package de.gematik.demis.service.base.feign;
 
 public class MyException extends RuntimeException {}

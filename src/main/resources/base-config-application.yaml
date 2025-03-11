@@ -15,21 +15,24 @@ management:
             # Enable Exposing of Information over /actuator/info
             enabled: true
     endpoints:
-        enabled-by-default: false
+        access:
+            default: read-only
         web:
             exposure:
-                include: health,info,metrics,prometheus
+                include: health,info,metrics,prometheus,sbom
     endpoint:
         info:
-            enabled: true
+            access: read-only
         prometheus:
-            enabled: true
+            access: read-only
         health:
             enabled: true
             probes:
-                enabled: true
+                access: read-only
         metrics:
-            enabled: true
+            access: read-only
+        sbom:
+            access: read-only
     health:
         livenessState:
             enabled: true
@@ -38,3 +41,8 @@ management:
     tracing:
         propagation:
             type: b3_multi
+
+logging:
+    structured:
+        format:
+            console: logstash
