@@ -5,9 +5,10 @@
 
     <groupId>de.gematik.demis</groupId>
     <artifactId>service-base</artifactId>
-    <version>2.1.1-SNAPSHOT</version>
+    <version>2.4.0</version>
     <name>service-base</name>
     <description>library implementing some cross-cutting concerns like error handling for spring boot services</description>
+    <url>https://github.com/gematik/DEMIS-service-base</url>
 
     <licenses>
         <license>
@@ -17,15 +18,17 @@
     </licenses>
 
     <properties>
+        <version.maven.javadoc>3.11.2</version.maven.javadoc>
+        <version.maven-compiler-plugin>3.14.0</version.maven-compiler-plugin>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
+
         <java.version>21</java.version>
-        <spring-boot.version>3.2.4</spring-boot.version>
-        <spring-cloud.version>2023.0.1</spring-cloud.version>
-        <compiler.plugin.version>3.13.0</compiler.plugin.version>
-        <jacoco.plugin.version>0.8.11</jacoco.plugin.version>
-        <fmt.maven.plugin.version>2.23</fmt.maven.plugin.version>
-        <!-- CVEs -->
-        <jackson-bom.version>2.17.0</jackson-bom.version>
-        <logback.version>1.5.3</logback.version>
+        <spring-boot.version>3.4.3</spring-boot.version>
+        <spring-cloud.version>2024.0.0</spring-cloud.version>
+        <jacoco.plugin.version>0.8.12</jacoco.plugin.version>
+        <fmt.maven.plugin.version>2.25</fmt.maven.plugin.version>
+        <aspectj.version>1.9.22.1</aspectj.version>
     </properties>
 
     <dependencies>
@@ -37,13 +40,18 @@
         <dependency>
             <groupId>net.logstash.logback</groupId>
             <artifactId>logstash-logback-encoder</artifactId>
-            <version>7.4</version>
+            <version>8.0</version>
         </dependency>
 
         <!-- Optional dependencies -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-aop</artifactId>
             <optional>true</optional>
         </dependency>
         <dependency>
@@ -64,6 +72,18 @@
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>org.aspectj</groupId>
+            <artifactId>aspectjrt</artifactId>
+            <version>${aspectj.version}</version>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>org.aspectj</groupId>
+            <artifactId>aspectjweaver</artifactId>
+            <version>${aspectj.version}</version>
             <optional>true</optional>
         </dependency>
 
@@ -102,14 +122,6 @@
 
     <dependencyManagement>
         <dependencies>
-            <!-- CVE Override -->
-            <dependency>
-                <groupId>com.fasterxml.jackson</groupId>
-                <artifactId>jackson-bom</artifactId>
-                <version>${jackson-bom.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
             <dependency>
                 <groupId>org.springframework.cloud</groupId>
                 <artifactId>spring-cloud-dependencies</artifactId>
@@ -124,17 +136,6 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
-            <!-- Logback -->
-            <dependency>
-                <groupId>ch.qos.logback</groupId>
-                <artifactId>logback-core</artifactId>
-                <version>${logback.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>ch.qos.logback</groupId>
-                <artifactId>logback-classic</artifactId>
-                <version>${logback.version}</version>
-            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -143,9 +144,60 @@
 
         <plugins>
             <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>license-maven-plugin</artifactId>
+                <version>2.5.0</version>
+                <configuration>
+                    <licenseName>eupl_v1_2</licenseName>
+                    <inceptionYear>2025</inceptionYear>
+                    <organizationName>gematik GmbH</organizationName>
+                    <licenseResolver>classpath://copyright-header/eupl-license</licenseResolver>
+                    <failOnMissingHeader>true</failOnMissingHeader>
+                    <failOnNotUptodateHeader>true</failOnNotUptodateHeader>
+                    <canUpdateCopyright>true</canUpdateCopyright>
+                    <licensesOutputDirectory>${project.basedir}/third-party-licenses</licensesOutputDirectory>
+                    <licensesOutputFile>${project.basedir}/third-party-licenses/licenses.xml</licensesOutputFile>
+                    <forceDownload>false</forceDownload>
+                    <includes>
+                        <include>**/*.java</include>
+                    </includes>
+                    <excludes>
+                        <exclude>**/generated/**</exclude>
+                    </excludes>
+                </configuration>
+                <dependencies>
+                    <dependency>
+                        <groupId>de.gematik</groupId>
+                        <artifactId>ospo-resources</artifactId>
+                        <version>1.1.0</version>
+                    </dependency>
+                </dependencies>
+                <executions>
+                    <execution>
+                        <id>download-licenses</id>
+                        <goals>
+                            <goal>download-licenses</goal>
+                        </goals>
+                        <phase>none</phase>
+                    </execution>
+                    <execution>
+                        <id>update-file-header</id>
+                        <goals>
+                            <goal>update-file-header</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>check-file-header</id>
+                        <goals>
+                            <goal>check-file-header</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>${compiler.plugin.version}</version>
+                <version>${version.maven-compiler-plugin}</version>
                 <executions>
                     <execution>
                         <id>default-compile</id>
@@ -212,7 +264,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>3.2.5</version>
+                <version>3.5.2</version>
             </plugin>
 
             <plugin>
@@ -222,7 +274,6 @@
                 <configuration>
                     <noticeTemplate>NOTICE.template</noticeTemplate>
                     <outputDir>.</outputDir>
-                    <!--   <licenseMapping>license-mappings.xml</licenseMapping>-->
                 </configuration>
                 <executions>
                     <execution>
@@ -248,4 +299,100 @@
         </snapshotRepository>
     </distributionManagement>
 
+    <profiles>
+        <profile>
+            <id>external</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <version>3.2.7</version>
+                        <executions>
+                            <execution>
+                                <id>sign-artifacts</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>sign</goal>
+                                </goals>
+                                <configuration>
+                                    <gpgArguments>
+                                        <arg>--pinentry-mode</arg>
+                                        <arg>loopback</arg>
+                                    </gpgArguments>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.sonatype.plugins</groupId>
+                        <artifactId>nexus-staging-maven-plugin</artifactId>
+                        <version>1.7.0</version>
+                        <extensions>true</extensions>
+                        <configuration>
+                            <serverId>ossrh</serverId>
+                            <nexusUrl>https://oss.sonatype.org/</nexusUrl>
+                            <autoReleaseAfterClose>true</autoReleaseAfterClose>
+                            <stagingProgressTimeoutMinutes>20</stagingProgressTimeoutMinutes>
+                        </configuration>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-source-plugin</artifactId>
+                        <version>3.3.1</version>
+                        <executions>
+                            <execution>
+                                <id>attach-sources</id>
+                                <goals>
+                                    <goal>jar</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-javadoc-plugin</artifactId>
+                        <version>${version.maven.javadoc}</version>
+                        <configuration>
+                            <doclint>none</doclint>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>attach-javadocs</id>
+                                <goals>
+                                    <goal>jar</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+
+    <scm>
+        <url>https://github.com/gematik/DEMIS-service-base</url>
+        <connection>scm:git:git://github.com/gematik/DEMIS-service-base.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com:gematik/DEMIS-service-base.git</developerConnection>
+    </scm>
+
+    <issueManagement>
+        <system>GitHub</system>
+        <url>https://github.com/gematik/DEMIS-service-base</url>
+    </issueManagement>
+
+    <organization>
+        <name>gematik GmbH</name>
+        <url>https://www.gematik.de</url>
+    </organization>
+
+    <developers>
+        <developer>
+            <name>gematik</name>
+            <email>software-development@gematik.de</email>
+            <url>https://gematik.github.io/</url>
+            <organization>gematik GmbH</organization>
+            <organizationUrl>https://www.gematik.de/</organizationUrl>
+        </developer>
+    </developers>
 </project>
