@@ -17,6 +17,7 @@ This project includes:
   Apache Commons Codec under Apache-2.0
   Apache Commons FileUpload under Apache-2.0
   Apache Commons IO under Apache License, Version 2.0
+  Apache Commons Lang under Apache-2.0
   Apache HttpClient under Apache License, Version 2.0
   Apache HttpComponents Core HTTP/1.1 under Apache License, Version 2.0
   Apache HttpComponents Core HTTP/2 under Apache License, Version 2.0
@@ -44,6 +45,7 @@ This project includes:
   Jackson-annotations under The Apache Software License, Version 2.0
   Jackson-core under The Apache Software License, Version 2.0
   jackson-databind under The Apache Software License, Version 2.0
+  Jackson-dataformat-YAML under The Apache Software License, Version 2.0
   Jackson-module-parameter-names under The Apache Software License, Version 2.0
   Jakarta Activation API under EDL 1.0
   Jakarta Annotations API under EPL 2.0 or GPL2 w/ CPE
@@ -136,6 +138,11 @@ This project includes:
   spring-cloud-starter under Apache License, Version 2.0
   spring-cloud-test-support under Apache License, Version 2.0
   spring-security-crypto under Apache License, Version 2.0
+  springdoc-openapi-starter-common under The Apache License, Version 2.0
+  springdoc-openapi-starter-webmvc-api under The Apache License, Version 2.0
+  swagger-annotations-jakarta under Apache License 2.0
+  swagger-core-jakarta under Apache License 2.0
+  swagger-models-jakarta under Apache License 2.0
   tomcat-embed-core under Apache License, Version 2.0
   tomcat-embed-el under Apache License, Version 2.0
   tomcat-embed-websocket under Apache License, Version 2.0
