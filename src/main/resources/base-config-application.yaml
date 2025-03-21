@@ -16,6 +16,7 @@ management:
             enabled: true
     endpoints:
         access:
+            max-permitted: read-only
             default: read-only
         web:
             exposure:
@@ -26,7 +27,7 @@ management:
         prometheus:
             access: read-only
         health:
-            enabled: true
+            access: read-only
             probes:
                 access: read-only
         metrics:

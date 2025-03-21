@@ -16,7 +16,6 @@ This project includes:
   AOP alliance under Public Domain
   Apache Commons Codec under Apache-2.0
   Apache Commons FileUpload under Apache-2.0
-  Apache Commons IO under Apache License, Version 2.0
   Apache Commons Lang under Apache-2.0
   Apache HttpClient under Apache License, Version 2.0
   Apache HttpComponents Core HTTP/1.1 under Apache License, Version 2.0
@@ -57,7 +56,7 @@ This project includes:
   JSON Small and Fast Parser under The Apache Software License, Version 2.0
   json-path under The Apache Software License, Version 2.0
   JSONassert under The Apache Software License, Version 2.0
-  JUL to SLF4J bridge under MIT License
+  JUL to SLF4J bridge under MIT
   JUnit Jupiter (Aggregator) under Eclipse Public License v2.0
   JUnit Jupiter API under Eclipse Public License v2.0
   JUnit Jupiter Engine under Eclipse Public License v2.0
@@ -105,7 +104,7 @@ This project includes:
   Plexus Interpolation API under Apache License, Version 2.0
   Project Lombok under The MIT License
   service-base under Licensed under the EUPL 1.2
-  SLF4J API Module under MIT License
+  SLF4J API Module under MIT
   SnakeYAML under Apache License, Version 2.0
   Spring AOP under Apache License, Version 2.0
   Spring Beans under Apache License, Version 2.0
