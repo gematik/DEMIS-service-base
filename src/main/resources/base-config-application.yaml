@@ -4,6 +4,9 @@ spring:
     jackson:
         time-zone: Europe/Berlin
 
+springdoc:
+    writer-with-order-by-keys: true
+
 server:
     error:
         whitelabel:
