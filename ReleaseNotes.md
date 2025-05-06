@@ -2,6 +2,9 @@
 
 # Release notes service-base
 
+## Release 2.5.0
+- Updated ospo-resources for adding additional notes and disclaimer
+
 ## Release 2.4.0
 - Updated dependencies
 - Updated OSPO-Guidelines and checks
