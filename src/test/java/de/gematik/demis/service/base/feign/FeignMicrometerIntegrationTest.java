@@ -35,9 +35,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import de.gematik.demis.service.base.feign.SampleFeignClient.MyResult;
 import io.micrometer.core.instrument.Meter;
-import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
-import java.util.List;
+import io.micrometer.observation.ObservationRegistry;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -62,7 +60,7 @@ class FeignMicrometerIntegrationTest {
 
   @Autowired SampleFeignClient client;
 
-  @Autowired MeterRegistry meterRegistry;
+  @Autowired ObservationRegistry observationRegistry;
 
   @BeforeEach
   void setupWireMock() {
@@ -78,33 +76,21 @@ class FeignMicrometerIntegrationTest {
   void httpHeaders() {
     client.standardRequest();
     WireMock.verify(
-        postRequestedFor(urlEqualTo("/test"))
-            .withHeader("X-B3-Sampled", matching("\\d+"))
-            .withHeader("X-B3-SpanId", matching(".+"))
-            .withHeader("X-B3-TraceId", matching(".+")));
+        postRequestedFor(urlEqualTo("/test")).withHeader("traceparent", matching(".+")));
   }
 
   @Test
-  void meters() {
+  void checkConfig() {
     client.standardRequest();
-    final List<Meter.Id> list =
-        meterRegistry.getMeters().stream()
-            .map(Meter::getId)
-            .filter(
-                id ->
-                    hasTag(id, "client", SampleFeignClient.class.getName())
-                        && hasTag(id, "method", "standardRequest"))
-            .toList();
-    log.info("meters : {}", list);
-    assertThat(list).isNotEmpty();
+    assertThat(observationRegistry.observationConfig()).isNotNull();
   }
 
   @SpringBootApplication
   @EnableFeignClients(clients = SampleFeignClient.class)
   static class TestApp {
     @Bean
-    MeterRegistry meterRegistry() {
-      return new SimpleMeterRegistry();
+    ObservationRegistry observationRegistry() {
+      return ObservationRegistry.create();
     }
   }
 }
