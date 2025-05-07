@@ -44,7 +44,7 @@ management:
             enabled: true
     tracing:
         propagation:
-            type: b3_multi
+            type: w3c
 
 logging:
     structured:

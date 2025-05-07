@@ -27,8 +27,8 @@ package de.gematik.demis.service.base.feign;
  */
 
 import feign.Capability;
-import feign.micrometer.MicrometerCapability;
-import io.micrometer.core.instrument.MeterRegistry;
+import feign.micrometer.MicrometerObservationCapability;
+import io.micrometer.observation.ObservationRegistry;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -37,8 +37,8 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 
-@ConditionalOnClass({Capability.class, MicrometerCapability.class})
-@ConditionalOnBean(MeterRegistry.class)
+@ConditionalOnClass({Capability.class, MicrometerObservationCapability.class})
+@ConditionalOnBean(ObservationRegistry.class)
 @ConditionalOnProperty(
     value = "base.feign.metrics.enabled",
     havingValue = "true",
@@ -48,8 +48,9 @@ import org.springframework.context.annotation.Bean;
 public class FeignMicrometerConfiguration {
 
   @Bean
-  public Capability meterCapability(final MeterRegistry registry) {
-    return new MicrometerCapability(registry);
+  public MicrometerObservationCapability micrometerObservationCapability(
+      final ObservationRegistry registry) {
+    return new MicrometerObservationCapability(registry);
   }
 
   @PostConstruct

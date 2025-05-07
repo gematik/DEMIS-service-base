@@ -594,6 +594,7 @@
           <name>GPL2 w/ CPE</name>
           <url>https://www.gnu.org/software/classpath/license.html</url>
           <distribution>repo</distribution>
+          <file>gpl2 w_ cpe - license.html</file>
         </license>
       </licenses>
     </dependency>
@@ -666,7 +667,7 @@
     <dependency>
       <groupId>net.logstash.logback</groupId>
       <artifactId>logstash-logback-encoder</artifactId>
-      <version>8.0</version>
+      <version>8.1</version>
       <licenses>
         <license>
           <name>Apache License, Version 2.0</name>
@@ -1037,7 +1038,7 @@
     <dependency>
       <groupId>org.aspectj</groupId>
       <artifactId>aspectjrt</artifactId>
-      <version>1.9.23</version>
+      <version>1.9.24</version>
       <licenses>
         <license>
           <name>Eclipse Public License - v 2.0</name>
@@ -1050,7 +1051,7 @@
     <dependency>
       <groupId>org.aspectj</groupId>
       <artifactId>aspectjweaver</artifactId>
-      <version>1.9.23</version>
+      <version>1.9.24</version>
       <licenses>
         <license>
           <name>Eclipse Public License - v 2.0</name>
