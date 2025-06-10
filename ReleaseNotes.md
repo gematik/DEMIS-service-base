@@ -2,6 +2,9 @@
 
 # Release notes service-base
 
+## Release 2.7.0
+- Updated Spring Boot to 3.5.0
+
 ## Release 2.6.0
 - Changed Tracing Format to W3C (OpenTelemetry)
 - Updated ospo-resources for adding additional notes and disclaimer
