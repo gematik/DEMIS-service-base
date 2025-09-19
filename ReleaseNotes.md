@@ -2,6 +2,9 @@
 
 # Release notes service-base
 
+## Release 2.7.1
+- Updated Spring Boot to 3.5.6
+
 ## Release 2.7.0
 - Updated Spring Boot to 3.5.0
 
