@@ -1,4 +1,4 @@
-package de.gematik.demis.service.base.error.rest.api;
+package de.gematik.demis.service.base.fhir.response;
 
 /*-
  * #%L
@@ -26,13 +26,12 @@ package de.gematik.demis.service.base.error.rest.api;
  * #L%
  */
 
-import jakarta.annotation.Nullable;
-import java.time.LocalDateTime;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 
-public record ErrorDTO(
-    String id,
-    int status,
-    LocalDateTime timestamp,
-    @Nullable String errorCode,
-    @Nullable String detail,
-    String path) {}
+/**
+ * Properties to control fhir response including headers
+ *
+ * @param contentTypeValueLegacyLogic true: taken from request header, false: fhir mimetype
+ */
+@ConfigurationProperties(prefix = "base.fhir.response")
+public record FhirResponseConverterProperties(boolean contentTypeValueLegacyLogic) {}

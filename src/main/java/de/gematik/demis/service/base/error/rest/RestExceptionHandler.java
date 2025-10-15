@@ -57,6 +57,9 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 public class RestExceptionHandler extends ResponseEntityExceptionHandler {
 
   private final ErrorFieldProvider errorFieldProvider;
+  private final SenderProperties senderProperties;
+  private final Optional<ErrorResponseStrategy> errorResponseStrategy;
+  private final Optional<ErrorCounter> errorCounter;
 
   private static boolean hasCause(final Exception ex, final Class<? extends Throwable> clazz) {
     Throwable cause = ex;
@@ -129,16 +132,43 @@ public class RestExceptionHandler extends ResponseEntityExceptionHandler {
     final String errorCode =
         ex instanceof ErrorCodeSupplier errorCodeSupplier ? errorCodeSupplier.getErrorCode() : null;
     final ErrorDTO errorDTO = createErrorDTO(statusCode, request, errorCode, detail);
-    logException(statusCode, ex, errorDTO);
-    return new ResponseEntity<>(errorDTO, statusCode);
+    final String sender = request.getHeader(senderProperties.headerKey());
+    logException(statusCode, ex, errorDTO, sender);
+    callErrorCounter(errorDTO, sender);
+    return toResponseEntity(statusCode, request, ex, errorDTO);
+  }
+
+  private ResponseEntity<Object> toResponseEntity(
+      final HttpStatusCode statusCode,
+      final WebRequest request,
+      final Exception ex,
+      final ErrorDTO errorDTO) {
+    final ResponseEntity.BodyBuilder responseBodeBuilder = ResponseEntity.status(statusCode);
+    return errorResponseStrategy
+        .map(strategy -> strategy.toResponse(responseBodeBuilder, ex, errorDTO, request))
+        .orElseGet(() -> responseBodeBuilder.body(errorDTO));
   }
 
   private void logException(
-      final HttpStatusCode statusCode, final Exception ex, final ErrorDTO errorDTO) {
+      final HttpStatusCode statusCode,
+      final Exception ex,
+      final ErrorDTO errorDTO,
+      final String sender) {
+    final String senderLogString = senderProperties.log() ? (" from sender " + sender) : "";
     if (statusCode.is5xxServerError()) {
-      log.error("server error processing request: {}", errorDTO, ex);
+      log.error("server error processing request: {}{}", errorDTO, senderLogString, ex);
     } else {
-      log.info("invalid client request: {} -> {}", errorDTO, String.valueOf(ex));
+      log.info("invalid client request: {}{} -> {}", errorDTO, senderLogString, String.valueOf(ex));
+    }
+  }
+
+  private void callErrorCounter(final ErrorDTO errorDTO, final String sender) {
+    if (errorCounter.isPresent()) {
+      try {
+        errorCounter.get().errorOccurred(errorDTO, sender);
+      } catch (final RuntimeException ex) {
+        log.error("Ignore error in error counter", ex);
+      }
     }
   }
 

@@ -26,28 +26,14 @@ package de.gematik.demis.service.base.error.rest;
  * #L%
  */
 
-import jakarta.annotation.PostConstruct;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.autoconfigure.AutoConfiguration;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.context.annotation.Import;
-import org.springframework.web.bind.annotation.RestControllerAdvice;
+import de.gematik.demis.service.base.error.rest.api.ErrorDTO;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.context.request.WebRequest;
 
-@ConditionalOnClass(RestControllerAdvice.class)
-@ConditionalOnProperty(
-    value = "base.errorhandler.enabled",
-    havingValue = "true",
-    matchIfMissing = true)
-@AutoConfiguration
-@Slf4j
-@Import({RestExceptionHandler.class, ErrorFieldProvider.class})
-@EnableConfigurationProperties(SenderProperties.class)
-public class ErrorHandlerConfiguration {
-
-  @PostConstruct
-  void log() {
-    log.info("RestExceptionHandler activated.");
-  }
+public interface ErrorResponseStrategy {
+  ResponseEntity<Object> toResponse(
+      ResponseEntity.BodyBuilder responseBuilder,
+      final Exception ex,
+      ErrorDTO errorDTO,
+      WebRequest request);
 }

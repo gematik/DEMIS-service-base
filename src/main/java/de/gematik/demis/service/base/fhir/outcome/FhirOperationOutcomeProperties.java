@@ -1,4 +1,4 @@
-package de.gematik.demis.service.base.error.rest;
+package de.gematik.demis.service.base.fhir.outcome;
 
 /*-
  * #%L
@@ -26,28 +26,31 @@ package de.gematik.demis.service.base.error.rest;
  * #L%
  */
 
+import jakarta.annotation.Nullable;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.autoconfigure.AutoConfiguration;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.context.annotation.Import;
-import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.hl7.fhir.r4.model.OperationOutcome;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.bind.DefaultValue;
 
-@ConditionalOnClass(RestControllerAdvice.class)
-@ConditionalOnProperty(
-    value = "base.errorhandler.enabled",
-    havingValue = "true",
-    matchIfMissing = true)
-@AutoConfiguration
+/**
+ * Properties to control operation outcome
+ *
+ * @param profile Profile URL used for OperationOutcome (optional).
+ * @param issueFilter Enables filtering of issues in OperationOutcome
+ * @param issueThreshold Minimum severity to include as an issue (e.g. information, warning, error)
+ * @param sort Enabled sorting of issues corresponding to their severity
+ */
+@ConfigurationProperties(prefix = "base.fhir.operation-outcome")
 @Slf4j
-@Import({RestExceptionHandler.class, ErrorFieldProvider.class})
-@EnableConfigurationProperties(SenderProperties.class)
-public class ErrorHandlerConfiguration {
+public record FhirOperationOutcomeProperties(
+    @Nullable String profile,
+    @DefaultValue("true") boolean issueFilter,
+    @DefaultValue("warning") OperationOutcome.IssueSeverity issueThreshold,
+    @DefaultValue("true") boolean sort) {
 
   @PostConstruct
   void log() {
-    log.info("RestExceptionHandler activated.");
+    log.info("Service Base - Fhir OperationOutcome Configuration {}", this);
   }
 }

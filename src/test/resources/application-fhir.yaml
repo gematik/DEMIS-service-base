@@ -1,0 +1,11 @@
+base:
+  errorhandler:
+    enabled: true
+
+    sender:
+      log: true
+      header: x-sender
+
+  fhir:
+    enabled: true
+    error-as-operation-outcome: true

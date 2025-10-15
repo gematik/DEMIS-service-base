@@ -1,0 +1,53 @@
+{
+  "groups": [
+    {
+      "name": "base",
+      "type": "java.lang.Object"
+    }
+  ],
+  "properties": [
+    {
+      "name": "base.errorhandler.enabled",
+      "type": "java.lang.Boolean",
+      "defaultValue": true
+    },
+    {
+      "name": "base.fhir.enabled",
+      "type": "java.lang.Boolean",
+      "defaultValue": false
+    },
+    {
+      "name": "base.fhir.error-as-operation-outcome",
+      "type": "java.lang.Boolean",
+      "defaultValue": false
+    },
+    {
+      "name": "base.feign.extension.enabled",
+      "type": "java.lang.Boolean",
+      "defaultValue": true
+    },
+    {
+      "name": "base.feign.metrics.enabled",
+      "type": "java.lang.Boolean",
+      "defaultValue": true
+    },    {
+      "name": "base.logging.request.enabled",
+      "type": "java.lang.Boolean",
+      "defaultValue": true
+    },
+    {
+      "name": "base.meter.aspect.enabled",
+      "type": "java.lang.Boolean",
+      "defaultValue": false
+    },
+    {
+      "name": "base.observation.aspect.enabled",
+      "type": "java.lang.Boolean",
+      "defaultValue": true
+    }
+  ],
+  "hints": [],
+  "ignored": {
+    "properties": []
+  }
+}

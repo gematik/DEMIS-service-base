@@ -26,6 +26,7 @@ package de.gematik.demis.service.base.error.rest;
  * #L%
  */
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -42,7 +43,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import de.gematik.demis.service.base.error.ServiceCallException;
 import de.gematik.demis.service.base.error.ServiceException;
+import de.gematik.demis.service.base.error.rest.api.ErrorDTO;
 import feign.FeignException;
+import jakarta.annotation.Nullable;
 import java.net.ConnectException;
 import java.net.SocketTimeoutException;
 import java.time.LocalDateTime;
@@ -53,13 +56,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.stereotype.Service;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.ResultMatcher;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.web.server.ResponseStatusException;
 
 @SpringBootTest(classes = RestExceptionHandlerIntegrationTest.TestApp.class)
@@ -70,10 +75,11 @@ class RestExceptionHandlerIntegrationTest {
   private static final String TIMESTAMP = "2023-11-06T19:19:21.525781612";
   private static final String URL_GET = "/sample/2";
 
-  @MockBean SampleService service;
-  @MockBean ErrorFieldProvider errorFieldProvider;
+  @MockitoBean SampleService service;
+  @MockitoBean ErrorFieldProvider errorFieldProvider;
 
   @Autowired MockMvc mockMvc;
+  @Autowired TestApp.MyErrorCounter errorCounter;
 
   @BeforeEach
   void setup() {
@@ -170,8 +176,31 @@ class RestExceptionHandlerIntegrationTest {
                 "Content-Type 'text/plain;charset=UTF-8' is not supported."));
   }
 
+  @Test
+  void errorCounter() throws Exception {
+    final HttpStatus status = HttpStatus.UNPROCESSABLE_ENTITY;
+    final String errorCode = "56a";
+    final String message = "my detail";
+    final String sender = "ME";
+
+    Mockito.doThrow(new ServiceException(status, errorCode, message)).when(service).doSomething();
+
+    mockMvc.perform(prepareGetRequest().header("x-sender", sender));
+
+    final ErrorDTO errorDTO = errorCounter.errorDTO;
+    assertThat(errorDTO).isNotNull();
+    assertThat(errorDTO.errorCode()).isEqualTo(errorCode);
+    assertThat(errorDTO.detail()).isEqualTo(message);
+    assertThat(errorDTO.status()).isEqualTo(status.value());
+    assertThat(errorCounter.sender).isEqualTo(sender);
+  }
+
   private ResultActions validRequest() throws Exception {
-    return mockMvc.perform(get(URL_GET).queryParam("myQueryParam", "5"));
+    return mockMvc.perform(prepareGetRequest());
+  }
+
+  private MockHttpServletRequestBuilder prepareGetRequest() {
+    return get(URL_GET).queryParam("myQueryParam", "5");
   }
 
   private ResultMatcher[] matchErrorResponse(final HttpStatus httpStatus) {
@@ -193,5 +222,18 @@ class RestExceptionHandlerIntegrationTest {
 
   @SpringBootApplication
   @Import(SampleRestController.class)
-  static class TestApp {}
+  static class TestApp {
+    @Service
+    public static final class MyErrorCounter implements ErrorCounter {
+
+      public ErrorDTO errorDTO;
+      public String sender;
+
+      @Override
+      public void errorOccurred(final ErrorDTO error, @Nullable final String sender) {
+        this.errorDTO = error;
+        this.sender = sender;
+      }
+    }
+  }
 }

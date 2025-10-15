@@ -1,4 +1,4 @@
-package de.gematik.demis.service.base.error.rest.api;
+package de.gematik.demis.service.base.fhir.error;
 
 /*-
  * #%L
@@ -26,13 +26,8 @@ package de.gematik.demis.service.base.error.rest.api;
  * #L%
  */
 
-import jakarta.annotation.Nullable;
-import java.time.LocalDateTime;
+import org.hl7.fhir.r4.model.OperationOutcome;
 
-public record ErrorDTO(
-    String id,
-    int status,
-    LocalDateTime timestamp,
-    @Nullable String errorCode,
-    @Nullable String detail,
-    String path) {}
+public interface OperationOutcomeCarrier {
+  OperationOutcome getOperationOutcome();
+}

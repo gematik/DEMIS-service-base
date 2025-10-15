@@ -2,6 +2,9 @@
 
 # Release notes service-base
 
+## Release 2.8.0
+- Fhir support (fhir output in rest errorhandler, response converter, operationOutcome) - all opt-in
+
 ## Release 2.7.1
 - Updated Spring Boot to 3.5.6
 

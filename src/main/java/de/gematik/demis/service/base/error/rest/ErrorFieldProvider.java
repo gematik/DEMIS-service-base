@@ -31,7 +31,7 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 
 @Service
-class ErrorFieldProvider {
+public class ErrorFieldProvider {
   public String generateId() {
     return UUID.randomUUID().toString();
   }
