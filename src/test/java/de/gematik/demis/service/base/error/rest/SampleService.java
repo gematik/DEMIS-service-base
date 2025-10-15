@@ -29,6 +29,6 @@ package de.gematik.demis.service.base.error.rest;
 import org.springframework.stereotype.Service;
 
 @Service
-class SampleService {
+public class SampleService {
   public void doSomething() {}
 }

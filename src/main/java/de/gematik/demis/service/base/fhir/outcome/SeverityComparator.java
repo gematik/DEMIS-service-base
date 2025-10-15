@@ -1,4 +1,4 @@
-package de.gematik.demis.service.base.error.rest;
+package de.gematik.demis.service.base.fhir.outcome;
 
 /*-
  * #%L
@@ -26,28 +26,30 @@ package de.gematik.demis.service.base.error.rest;
  * #L%
  */
 
-import jakarta.annotation.PostConstruct;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.autoconfigure.AutoConfiguration;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.context.annotation.Import;
-import org.springframework.web.bind.annotation.RestControllerAdvice;
+import java.util.Comparator;
+import org.hl7.fhir.r4.model.OperationOutcome.IssueSeverity;
 
-@ConditionalOnClass(RestControllerAdvice.class)
-@ConditionalOnProperty(
-    value = "base.errorhandler.enabled",
-    havingValue = "true",
-    matchIfMissing = true)
-@AutoConfiguration
-@Slf4j
-@Import({RestExceptionHandler.class, ErrorFieldProvider.class})
-@EnableConfigurationProperties(SenderProperties.class)
-public class ErrorHandlerConfiguration {
+/**
+ * Comparator for IssueSeverity. (e.g. {@code IssueSeverity.WARNING > IssueSeverity.INFORMATION})
+ */
+public class SeverityComparator implements Comparator<IssueSeverity> {
 
-  @PostConstruct
-  void log() {
-    log.info("RestExceptionHandler activated.");
+  private static int getOrderValue(final IssueSeverity is) {
+    if (is == null) {
+      return -1;
+    }
+
+    return switch (is) {
+      case FATAL -> 4;
+      case ERROR -> 3;
+      case WARNING -> 2;
+      case INFORMATION -> 1;
+      case NULL -> 0;
+    };
+  }
+
+  @Override
+  public int compare(final IssueSeverity o1, final IssueSeverity o2) {
+    return Integer.compare(getOrderValue(o1), getOrderValue(o2));
   }
 }

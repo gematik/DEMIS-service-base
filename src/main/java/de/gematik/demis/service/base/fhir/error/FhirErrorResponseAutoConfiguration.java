@@ -1,4 +1,4 @@
-package de.gematik.demis.service.base.error.rest;
+package de.gematik.demis.service.base.fhir.error;
 
 /*-
  * #%L
@@ -26,28 +26,26 @@ package de.gematik.demis.service.base.error.rest;
  * #L%
  */
 
+import de.gematik.demis.service.base.fhir.outcome.FhirOperationOutcomeService;
+import de.gematik.demis.service.base.fhir.response.FhirResponseConverter;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Import;
-import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-@ConditionalOnClass(RestControllerAdvice.class)
+@ConditionalOnBean({FhirResponseConverter.class, FhirOperationOutcomeService.class})
 @ConditionalOnProperty(
-    value = "base.errorhandler.enabled",
+    value = "base.fhir.error-as-operation-outcome",
     havingValue = "true",
-    matchIfMissing = true)
+    matchIfMissing = false)
 @AutoConfiguration
+@Import(FhirErrorResponseStrategy.class)
 @Slf4j
-@Import({RestExceptionHandler.class, ErrorFieldProvider.class})
-@EnableConfigurationProperties(SenderProperties.class)
-public class ErrorHandlerConfiguration {
-
+public class FhirErrorResponseAutoConfiguration {
   @PostConstruct
   void log() {
-    log.info("RestExceptionHandler activated.");
+    log.info("errors as fhir operation outcome enabled.");
   }
 }

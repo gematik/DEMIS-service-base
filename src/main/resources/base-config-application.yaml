@@ -50,3 +50,4 @@ logging:
     structured:
         format:
             console: logstash
+

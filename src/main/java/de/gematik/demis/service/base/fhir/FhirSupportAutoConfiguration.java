@@ -1,4 +1,4 @@
-package de.gematik.demis.service.base.error.rest;
+package de.gematik.demis.service.base.fhir;
 
 /*-
  * #%L
@@ -26,28 +26,35 @@ package de.gematik.demis.service.base.error.rest;
  * #L%
  */
 
-import jakarta.annotation.PostConstruct;
+import ca.uhn.fhir.context.FhirContext;
+import de.gematik.demis.service.base.fhir.outcome.FhirOperationOutcomeProperties;
+import de.gematik.demis.service.base.fhir.outcome.FhirOperationOutcomeService;
+import de.gematik.demis.service.base.fhir.response.FhirResponseConverter;
+import de.gematik.demis.service.base.fhir.response.FhirResponseConverterProperties;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
-import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-@ConditionalOnClass(RestControllerAdvice.class)
-@ConditionalOnProperty(
-    value = "base.errorhandler.enabled",
-    havingValue = "true",
-    matchIfMissing = true)
+@ConditionalOnClass(FhirContext.class)
+@ConditionalOnProperty(value = "base.fhir.enabled", havingValue = "true", matchIfMissing = false)
 @AutoConfiguration
+@Import({FhirResponseConverter.class, FhirOperationOutcomeService.class})
+@EnableConfigurationProperties({
+  FhirOperationOutcomeProperties.class,
+  FhirResponseConverterProperties.class
+})
 @Slf4j
-@Import({RestExceptionHandler.class, ErrorFieldProvider.class})
-@EnableConfigurationProperties(SenderProperties.class)
-public class ErrorHandlerConfiguration {
+public class FhirSupportAutoConfiguration {
 
-  @PostConstruct
-  void log() {
-    log.info("RestExceptionHandler activated.");
+  @ConditionalOnMissingBean(FhirContext.class)
+  @Bean
+  public FhirContext fhirContext() {
+    log.info("creating r4 fhir context");
+    return FhirContext.forR4Cached();
   }
 }
