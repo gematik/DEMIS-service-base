@@ -1,11 +1,8 @@
+spring:
+  config:
+    import: classpath:/base-config-application.yaml
+
 base:
-  errorhandler:
-    enabled: true
-
-    sender:
-      log: true
-      header: x-sender
-
   fhir:
     enabled: true
     error-as-operation-outcome: true

@@ -51,3 +51,6 @@ logging:
         format:
             console: logstash
 
+feature:
+    flag:
+        move-error-id-to-diagnostics: ${FEATURE_FLAG_MOVE_ERROR_ID_TO_DIAGNOSTICS:false}

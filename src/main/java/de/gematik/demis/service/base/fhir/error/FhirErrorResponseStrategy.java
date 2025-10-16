@@ -34,7 +34,9 @@ import lombok.RequiredArgsConstructor;
 import org.hl7.fhir.r4.model.CodeableConcept;
 import org.hl7.fhir.r4.model.Coding;
 import org.hl7.fhir.r4.model.OperationOutcome;
+import org.hl7.fhir.r4.model.OperationOutcome.IssueType;
 import org.hl7.fhir.r4.model.OperationOutcome.OperationOutcomeIssueComponent;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.WebRequest;
@@ -45,6 +47,9 @@ class FhirErrorResponseStrategy implements ErrorResponseStrategy {
 
   private final FhirOperationOutcomeService fhirOperationOutcomeService;
   private final FhirResponseConverter fhirResponseConverter;
+
+  @Value("${feature.flag.move-error-id-to-diagnostics:false}")
+  private boolean featureFlagMoveErrorIdToDiagnostics;
 
   @Override
   public ResponseEntity<Object> toResponse(
@@ -75,13 +80,13 @@ class FhirErrorResponseStrategy implements ErrorResponseStrategy {
     final var issue = new OperationOutcomeIssueComponent();
     issue
         .setSeverity(OperationOutcome.IssueSeverity.ERROR)
-        .setCode(
-            errorDTO.status() >= 500
-                ? OperationOutcome.IssueType.EXCEPTION
-                : OperationOutcome.IssueType.PROCESSING)
-        .setDiagnostics(errorDTO.detail())
-        .setDetails(new CodeableConcept().addCoding(new Coding().setCode(errorDTO.errorCode())))
-        .addLocation(errorDTO.id());
+        .setCode(errorDTO.status() >= 500 ? IssueType.EXCEPTION : IssueType.PROCESSING)
+        .setDetails(new CodeableConcept().addCoding(new Coding().setCode(errorDTO.errorCode())));
+    if (featureFlagMoveErrorIdToDiagnostics) {
+      issue.setDiagnostics(errorDTO.detail() + " (" + errorDTO.id() + ")");
+    } else {
+      issue.setDiagnostics(errorDTO.detail()).addLocation(errorDTO.id());
+    }
     return issue;
   }
 }
