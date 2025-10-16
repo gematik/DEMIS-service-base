@@ -2,6 +2,9 @@
 
 # Release notes service-base
 
+## Release 2.8.1
+- in fhir error operation outcome the error correlation id moved from location to diagnostics (FEATURE_FLAG_MOVE_ERROR_ID_TO_DIAGNOSTICS)
+
 ## Release 2.8.0
 - Fhir support (fhir output in rest errorhandler, response converter, operationOutcome) - all opt-in
 

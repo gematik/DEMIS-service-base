@@ -27,6 +27,7 @@ package de.gematik.demis.service.base.fhir.error;
  */
 
 import static de.gematik.demis.service.base.fhir.error.FhirRestExceptionHandlerIntegrationTest.PROFILE;
+import static org.hl7.fhir.r4.model.OperationOutcome.*;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -61,11 +62,14 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
 @SpringBootTest(
-    classes = FhirRestExceptionHandlerIntegrationTest.TestApp.class,
-    properties = "base.fhir.operation-outcome.profile=" + PROFILE)
+    classes = FhirRestExceptionHandlerIntegrationFFErrorIdTest.TestApp.class,
+    properties = {
+      "base.fhir.operation-outcome.profile=" + PROFILE,
+      "feature.flag.move-error-id-to-diagnostics=true"
+    })
 @ActiveProfiles("fhir")
 @AutoConfigureMockMvc
-class FhirRestExceptionHandlerIntegrationTest {
+class FhirRestExceptionHandlerIntegrationFFErrorIdTest {
 
   public static final String PROFILE = "http=//demis.de/test";
   private static final String ERROR_ID = "123-abc";
@@ -94,13 +98,8 @@ class FhirRestExceptionHandlerIntegrationTest {
 
     final OperationOutcome expectedOperationOutcome = new OperationOutcome();
     expectedOperationOutcome.getMeta().addProfile(PROFILE);
-    expectedOperationOutcome
-        .addIssue()
-        .setSeverity(OperationOutcome.IssueSeverity.ERROR)
-        .setCode(OperationOutcome.IssueType.EXCEPTION)
-        .setDetails(new CodeableConcept().addCoding(new Coding().setCode(errorCode)))
-        .setDiagnostics(message)
-        .addLocation(ERROR_ID);
+    expectedOperationOutcome.addIssue(
+        expectedOperationOutcomeIssue(IssueType.EXCEPTION, errorCode, message));
 
     executeTest(messageType, status, expectedOperationOutcome);
   }
@@ -114,8 +113,8 @@ class FhirRestExceptionHandlerIntegrationTest {
     final OperationOutcome operationOutcome = new OperationOutcome();
     operationOutcome
         .addIssue()
-        .setSeverity(OperationOutcome.IssueSeverity.ERROR)
-        .setCode(OperationOutcome.IssueType.PROCESSING)
+        .setSeverity(IssueSeverity.ERROR)
+        .setCode(IssueType.PROCESSING)
         .setDiagnostics("validation error");
 
     Mockito.doThrow(
@@ -126,15 +125,21 @@ class FhirRestExceptionHandlerIntegrationTest {
     final OperationOutcome expectedOperationOutcome = new OperationOutcome();
     expectedOperationOutcome.getMeta().addProfile(PROFILE);
     expectedOperationOutcome.addIssue(operationOutcome.getIssue().getFirst());
-    expectedOperationOutcome
-        .addIssue()
-        .setSeverity(OperationOutcome.IssueSeverity.ERROR)
-        .setCode(OperationOutcome.IssueType.PROCESSING)
-        .setDetails(new CodeableConcept().addCoding(new Coding().setCode(errorCode)))
-        .setDiagnostics(message)
-        .addLocation(ERROR_ID);
+    expectedOperationOutcome.addIssue(
+        expectedOperationOutcomeIssue(IssueType.PROCESSING, errorCode, message));
 
     executeTest(MessageType.JSON, status, expectedOperationOutcome);
+  }
+
+  private OperationOutcomeIssueComponent expectedOperationOutcomeIssue(
+      final IssueType type, final String errorCode, final String message) {
+    final OperationOutcomeIssueComponent issue = new OperationOutcomeIssueComponent();
+    issue
+        .setSeverity(IssueSeverity.ERROR)
+        .setCode(type)
+        .setDetails(new CodeableConcept().addCoding(new Coding().setCode(errorCode)))
+        .setDiagnostics(message + " (" + ERROR_ID + ")");
+    return issue;
   }
 
   private void executeTest(
