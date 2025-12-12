@@ -2,6 +2,9 @@
 
 # Release notes service-base
 
+## Release 2.8.2
+- Updated Plugins and Libraries
+
 ## Release 2.8.1
 - in fhir error operation outcome the error correlation id moved from location to diagnostics (FEATURE_FLAG_MOVE_ERROR_ID_TO_DIAGNOSTICS)
 
