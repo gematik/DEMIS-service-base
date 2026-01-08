@@ -6,4 +6,4 @@ de.gematik.demis.service.base.metrics.MeterAspectConfiguration
 de.gematik.demis.service.base.metrics.ObservationAspectConfiguration
 de.gematik.demis.service.base.fhir.FhirSupportAutoConfiguration
 de.gematik.demis.service.base.fhir.error.FhirErrorResponseAutoConfiguration
-
+de.gematik.demis.service.base.clients.mapping.CodeMappingAutoConfiguration
