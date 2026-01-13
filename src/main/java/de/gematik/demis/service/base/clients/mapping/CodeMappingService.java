@@ -27,12 +27,14 @@ package de.gematik.demis.service.base.clients.mapping;
  * #L%
  */
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Supplier;
 import lombok.extern.slf4j.Slf4j;
+import org.jspecify.annotations.NonNull;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.util.StringUtils;
@@ -42,10 +44,8 @@ import org.springframework.util.StringUtils;
 public class CodeMappingService {
 
   private final CodeMappingClient codeMappingClient;
-  private final List<String> diseaseConceptMaps;
-  private final List<String> laboratoryConceptMaps;
-  private final ReloadableCache<String, String> diseaseCache;
-  private final ReloadableCache<String, String> laboratoryCache;
+  private final List<String> allConceptMaps;
+  private final ReloadableCache<String, String> cache;
   private final RetryFactory retryFactory;
 
   public CodeMappingService(
@@ -53,16 +53,19 @@ public class CodeMappingService {
       final CodeMappingProperties properties,
       final ReloadableCacheFactory cacheFactory,
       final RetryFactory retryFactory) {
+    validateProperties(properties);
     this.codeMappingClient = Objects.requireNonNull(codeMappingClient, "codeMappingClient");
     this.retryFactory = Objects.requireNonNull(retryFactory, "retryFactory");
-    validateProperties(properties);
-    this.diseaseConceptMaps = List.copyOf(properties.getDisease().getConceptMaps());
-    this.laboratoryConceptMaps = List.copyOf(properties.getLaboratory().getConceptMaps());
-    this.diseaseCache =
-        cacheFactory.create("disease", () -> loadConceptMap("disease", diseaseConceptMaps));
-    this.laboratoryCache =
-        cacheFactory.create(
-            "laboratory", () -> loadConceptMap("laboratory", laboratoryConceptMaps));
+    this.allConceptMaps = List.copyOf(mergeAllConceptMapsIntoSingleList(properties));
+    this.cache = cacheFactory.create("code-mapping", () -> loadConceptMaps(allConceptMaps));
+  }
+
+  private static @NonNull List<String> mergeAllConceptMapsIntoSingleList(
+      CodeMappingProperties properties) {
+    final var allMaps = new ArrayList<String>();
+    allMaps.addAll(properties.getDisease().getConceptMaps());
+    allMaps.addAll(properties.getLaboratory().getConceptMaps());
+    return allMaps;
   }
 
   private void validateProperties(final CodeMappingProperties properties) {
@@ -89,11 +92,6 @@ public class CodeMappingService {
   }
 
   void loadConceptMaps() {
-    loadCache(diseaseCache);
-    loadCache(laboratoryCache);
-  }
-
-  private void loadCache(ReloadableCache<String, String> cache) {
     ExponentialBackoffRetry retry = retryFactory.create();
 
     retry.executeWithRetry(
@@ -105,29 +103,17 @@ public class CodeMappingService {
         hasEntries -> !hasEntries);
   }
 
-  public String getMappedDiseaseCode(final String diseaseCode) {
-    if (!diseaseCache.hasEntries()) {
-      diseaseCache.loadCache();
-      if (!diseaseCache.hasEntries()) {
-
-        throw new CodeMappingUnavailableException("Code mapping for Disease not available");
+  public String mapCode(final String diseaseCode) {
+    if (!cache.hasEntries()) {
+      cache.loadCache();
+      if (!cache.hasEntries()) {
+        throw new CodeMappingUnavailableException("Code mapping not available");
       }
     }
-    return diseaseCache.getValue(diseaseCode);
+    return cache.getValue(diseaseCode);
   }
 
-  public String getMappedLaboratoryCode(final String laboratoryCode) {
-    if (!laboratoryCache.hasEntries()) {
-      laboratoryCache.loadCache();
-      if (!laboratoryCache.hasEntries()) {
-        throw new CodeMappingUnavailableException("Code mapping for Laboratory not available");
-      }
-    }
-    return laboratoryCache.getValue(laboratoryCode);
-  }
-
-  private Map<String, String> loadConceptMap(
-      final String cacheName, final List<String> conceptMaps) {
+  private Map<String, String> loadConceptMaps(final List<String> conceptMaps) {
     final var merged = new LinkedHashMap<String, String>();
     for (final var concept : conceptMaps) {
       final var map = codeMappingClient.getConceptMap(concept);
@@ -135,10 +121,9 @@ public class CodeMappingService {
           (key, value) -> {
             if (merged.containsKey(key)) {
               log.warn(
-                  "Duplicate key {} encountered while loading concept map {} for {} - existing value kept",
+                  "Duplicate key {} encountered while loading concept map {} - existing value kept",
                   key,
-                  concept,
-                  cacheName);
+                  concept);
             } else {
               merged.put(key, value);
             }
