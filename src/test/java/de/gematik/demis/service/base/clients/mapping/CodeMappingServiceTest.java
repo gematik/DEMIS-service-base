@@ -73,7 +73,7 @@ class CodeMappingServiceTest {
     var service = new CodeMappingService(client, properties, cacheFactory, retryFactory);
     service.loadConceptMaps();
 
-    assertThat(service.getMappedDiseaseCode("d1")).isEqualTo("mapped");
+    assertThat(service.mapCode("d1")).isEqualTo("mapped");
   }
 
   @Test
@@ -83,7 +83,7 @@ class CodeMappingServiceTest {
     var service = new CodeMappingService(client, properties, cacheFactory, retryFactory);
     service.loadConceptMaps();
 
-    assertThat(service.getMappedLaboratoryCode("l1")).isEqualTo("mappedLab");
+    assertThat(service.mapCode("l1")).isEqualTo("mappedLab");
   }
 
   @Test
@@ -95,19 +95,20 @@ class CodeMappingServiceTest {
     var service = new CodeMappingService(client, properties, cacheFactory, retryFactory);
     service.loadConceptMaps();
 
-    assertThat(service.getMappedDiseaseCode("d1")).isEqualTo("first");
+    assertThat(service.mapCode("d1")).isEqualTo("first");
   }
 
   @Test
   void shouldThrowWhenCacheEmpty() {
     when(client.getConceptMap("DiseaseA")).thenReturn(Map.of());
+    when(client.getConceptMap("LabA")).thenReturn(Map.of());
 
     var service = new CodeMappingService(client, properties, cacheFactory, retryFactory);
     service.loadConceptMaps();
 
-    assertThatThrownBy(() -> service.getMappedDiseaseCode("d1"))
+    assertThatThrownBy(() -> service.mapCode("d1"))
         .isInstanceOf(CodeMappingUnavailableException.class)
-        .hasMessageContaining("Disease");
+        .hasMessageContaining("not available");
   }
 
   @Nested

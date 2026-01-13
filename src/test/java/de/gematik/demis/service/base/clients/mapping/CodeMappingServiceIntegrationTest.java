@@ -90,20 +90,20 @@ class CodeMappingServiceIntegrationTest {
 
     codeMappingService.loadConceptMaps();
 
-    assertThat(codeMappingService.getMappedDiseaseCode("d1")).isEqualTo("mappedDisease");
-    assertThat(codeMappingService.getMappedLaboratoryCode("l1")).isEqualTo("mappedLab");
+    assertThat(codeMappingService.mapCode("d1")).isEqualTo("mappedDisease");
+    assertThat(codeMappingService.mapCode("l1")).isEqualTo("mappedLab");
   }
 
   @Test
   void shouldRaiseExceptionWhenConceptMapIsEmpty() {
     stubConceptMap("DiseaseA", "{}");
-    stubConceptMap("LabA", "{\"l1\":\"mappedLab\"}");
+    stubConceptMap("LabA", "{}");
 
     codeMappingService.loadConceptMaps();
 
-    assertThatThrownBy(() -> codeMappingService.getMappedDiseaseCode("missing"))
+    assertThatThrownBy(() -> codeMappingService.mapCode("missing"))
         .isInstanceOf(CodeMappingUnavailableException.class)
-        .hasMessageContaining("Disease");
+        .hasMessageContaining("not available");
   }
 
   private void stubConceptMap(final String name, final String body) {

@@ -2,6 +2,9 @@
 
 # Release notes service-base
 
+## 2.9.1
+- Consolidated code mapping to use a single unified cache instead of separate disease and laboratory caches for better performance and consistency
+
 ## 2.9.0
 - added code mapping client with service and caching for all services
 
