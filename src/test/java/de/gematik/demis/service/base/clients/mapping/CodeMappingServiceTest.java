@@ -43,7 +43,6 @@ class CodeMappingServiceTest {
   private CodeMappingClient client;
   private CodeMappingProperties properties;
   private CodeMappingService.ReloadableCacheFactory cacheFactory;
-  private CodeMappingService.RetryFactory retryFactory;
 
   @BeforeEach
   void setUp() {
@@ -52,25 +51,16 @@ class CodeMappingServiceTest {
     properties.setCacheReloadCron("0 */5 * * * *");
     properties.getClient().setBaseUrl("http://example");
     properties.getClient().setContextPath("/");
-    properties.getDisease().setConceptMaps(List.of("DiseaseA"));
-    properties.getLaboratory().setConceptMaps(List.of("LabA"));
+    properties.setConceptMaps(List.of("DiseaseA", "LabA"));
     cacheFactory = ReloadableCache::new;
-
-    // Use fast retry for tests - no actual waiting
-    retryFactory =
-        () -> {
-          var retry =
-              new ExponentialBackoffRetry(
-                  java.time.Duration.ofMillis(1), java.time.Duration.ofMillis(1), 3);
-          return org.mockito.Mockito.spy(retry);
-        };
   }
 
   @Test
   void shouldLoadMappingsAndMapDiseaseCode() {
     when(client.getConceptMap("DiseaseA")).thenReturn(Map.of("d1", "mapped"));
+    when(client.getConceptMap("LabA")).thenReturn(Map.of());
 
-    var service = new CodeMappingService(client, properties, cacheFactory, retryFactory);
+    var service = new CodeMappingService(client, properties, cacheFactory);
     service.loadConceptMaps();
 
     assertThat(service.mapCode("d1")).isEqualTo("mapped");
@@ -78,9 +68,10 @@ class CodeMappingServiceTest {
 
   @Test
   void shouldLoadMappingsAndMapLaboratoryCode() {
+    when(client.getConceptMap("DiseaseA")).thenReturn(Map.of());
     when(client.getConceptMap("LabA")).thenReturn(Map.of("l1", "mappedLab"));
 
-    var service = new CodeMappingService(client, properties, cacheFactory, retryFactory);
+    var service = new CodeMappingService(client, properties, cacheFactory);
     service.loadConceptMaps();
 
     assertThat(service.mapCode("l1")).isEqualTo("mappedLab");
@@ -88,11 +79,11 @@ class CodeMappingServiceTest {
 
   @Test
   void shouldKeepFirstValueWhenDuplicateKeyAppears() {
-    properties.getDisease().setConceptMaps(List.of("DiseaseA", "DiseaseB"));
+    properties.setConceptMaps(List.of("DiseaseA", "DiseaseB"));
     when(client.getConceptMap("DiseaseA")).thenReturn(Map.of("d1", "first"));
     when(client.getConceptMap("DiseaseB")).thenReturn(Map.of("d1", "second"));
 
-    var service = new CodeMappingService(client, properties, cacheFactory, retryFactory);
+    var service = new CodeMappingService(client, properties, cacheFactory);
     service.loadConceptMaps();
 
     assertThat(service.mapCode("d1")).isEqualTo("first");
@@ -103,12 +94,27 @@ class CodeMappingServiceTest {
     when(client.getConceptMap("DiseaseA")).thenReturn(Map.of());
     when(client.getConceptMap("LabA")).thenReturn(Map.of());
 
-    var service = new CodeMappingService(client, properties, cacheFactory, retryFactory);
+    var service = new CodeMappingService(client, properties, cacheFactory);
     service.loadConceptMaps();
 
     assertThatThrownBy(() -> service.mapCode("d1"))
         .isInstanceOf(CodeMappingUnavailableException.class)
         .hasMessageContaining("not available");
+  }
+
+  @Test
+  void shouldHandleMissingConceptMapGracefully() {
+    properties.setConceptMaps(List.of("DiseaseA", "MissingMap", "LabA"));
+    when(client.getConceptMap("DiseaseA")).thenReturn(Map.of("d1", "mappedDisease"));
+    when(client.getConceptMap("MissingMap")).thenThrow(new RuntimeException("404 Not Found"));
+    when(client.getConceptMap("LabA")).thenReturn(Map.of("l1", "mappedLab"));
+
+    var service = new CodeMappingService(client, properties, cacheFactory);
+    service.loadConceptMaps();
+
+    // Should still work with the available concept maps
+    assertThat(service.mapCode("d1")).isEqualTo("mappedDisease");
+    assertThat(service.mapCode("l1")).isEqualTo("mappedLab");
   }
 
   @Nested
@@ -117,8 +123,7 @@ class CodeMappingServiceTest {
     @Test
     void shouldRequireBaseUrl() {
       properties.getClient().setBaseUrl(" ");
-      assertThatThrownBy(
-              () -> new CodeMappingService(client, properties, cacheFactory, retryFactory))
+      assertThatThrownBy(() -> new CodeMappingService(client, properties, cacheFactory))
           .isInstanceOf(IllegalStateException.class)
           .hasMessageContaining("base URL");
     }
@@ -126,35 +131,23 @@ class CodeMappingServiceTest {
     @Test
     void shouldRequireContextPath() {
       properties.getClient().setContextPath(null);
-      assertThatThrownBy(
-              () -> new CodeMappingService(client, properties, cacheFactory, retryFactory))
+      assertThatThrownBy(() -> new CodeMappingService(client, properties, cacheFactory))
           .isInstanceOf(IllegalStateException.class)
           .hasMessageContaining("context path");
     }
 
     @Test
-    void shouldRequireDiseaseConceptMaps() {
-      properties.getDisease().setConceptMaps(List.of());
-      assertThatThrownBy(
-              () -> new CodeMappingService(client, properties, cacheFactory, retryFactory))
+    void shouldRequireConceptMaps() {
+      properties.setConceptMaps(List.of());
+      assertThatThrownBy(() -> new CodeMappingService(client, properties, cacheFactory))
           .isInstanceOf(IllegalStateException.class)
-          .hasMessageContaining("disease concept map");
-    }
-
-    @Test
-    void shouldRequireLaboratoryConceptMaps() {
-      properties.getLaboratory().setConceptMaps(List.of());
-      assertThatThrownBy(
-              () -> new CodeMappingService(client, properties, cacheFactory, retryFactory))
-          .isInstanceOf(IllegalStateException.class)
-          .hasMessageContaining("laboratory concept map");
+          .hasMessageContaining("concept map");
     }
 
     @Test
     void shouldRequireCronExpression() {
       properties.setCacheReloadCron(" ");
-      assertThatThrownBy(
-              () -> new CodeMappingService(client, properties, cacheFactory, retryFactory))
+      assertThatThrownBy(() -> new CodeMappingService(client, properties, cacheFactory))
           .isInstanceOf(IllegalStateException.class)
           .hasMessageContaining("cron");
     }
