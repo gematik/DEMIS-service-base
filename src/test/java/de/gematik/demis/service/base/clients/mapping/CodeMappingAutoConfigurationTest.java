@@ -30,33 +30,43 @@ package de.gematik.demis.service.base.clients.mapping;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
+import java.util.List;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 
 class CodeMappingAutoConfigurationTest {
 
-  private final ApplicationContextRunner contextRunner =
-      new ApplicationContextRunner()
-          .withConfiguration(AutoConfigurations.of(CodeMappingAutoConfiguration.class))
-          .withBean(CodeMappingClient.class, () -> mock(CodeMappingClient.class))
-          .withPropertyValues(
-              "demis.codemapping.enabled=true",
-              "demis.codemapping.cache-reload-cron=0 */5 * * * *",
-              "demis.codemapping.client.base-url=http://example",
-              "demis.codemapping.client.context-path=/",
-              "demis.codemapping.disease.concept-maps[0]=DiseaseA",
-              "demis.codemapping.laboratory.concept-maps[0]=LabA");
+  @Configuration
+  static class TestConfigEnabled {
+    @Bean
+    CodeMappingClient codeMappingClient() {
+      return mock(CodeMappingClient.class);
+    }
+
+    @Bean
+    CodeMappingService codeMappingService(CodeMappingClient client) {
+      CodeMappingProperties props = new CodeMappingProperties();
+      props.setEnabled(true);
+      props.setCacheReloadCron("0 */5 * * * *");
+      props.getClient().setBaseUrl("http://example");
+      props.getClient().setContextPath("/");
+      props.setConceptMaps(List.of("DiseaseA", "LabA"));
+      return new CodeMappingService(client, props, ReloadableCache::new);
+    }
+  }
 
   @Test
   void shouldCreateServiceWhenEnabled() {
-    contextRunner.run(context -> assertThat(context).hasSingleBean(CodeMappingService.class));
+    new ApplicationContextRunner()
+        .withUserConfiguration(TestConfigEnabled.class)
+        .run(context -> assertThat(context).hasSingleBean(CodeMappingService.class));
   }
 
   @Test
   void shouldNotCreateServiceWhenDisabled() {
-    contextRunner
-        .withPropertyValues("demis.codemapping.enabled=false")
+    new ApplicationContextRunner()
         .run(context -> assertThat(context).doesNotHaveBean(CodeMappingService.class));
   }
 }

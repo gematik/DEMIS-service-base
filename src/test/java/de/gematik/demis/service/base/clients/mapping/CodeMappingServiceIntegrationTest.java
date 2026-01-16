@@ -51,8 +51,8 @@ import org.springframework.test.annotation.DirtiesContext;
       "demis.codemapping.cache-reload-cron=*/30 * * * * *",
       "demis.codemapping.client.base-url=http://localhost:${wiremock.server.port}",
       "demis.codemapping.client.context-path=/",
-      "demis.codemapping.disease.concept-maps[0]=DiseaseA",
-      "demis.codemapping.laboratory.concept-maps[0]=LabA"
+      "demis.codemapping.concept-maps[0]=DiseaseA",
+      "demis.codemapping.concept-maps[1]=LabA"
     })
 @AutoConfigureWireMock(port = 0)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
@@ -60,21 +60,7 @@ class CodeMappingServiceIntegrationTest {
 
   @SpringBootApplication
   @EnableFeignClients(clients = CodeMappingClient.class)
-  static class TestApplication {
-
-    @org.springframework.boot.test.context.TestConfiguration
-    static class TestRetryConfiguration {
-
-      @org.springframework.context.annotation.Bean
-      @org.springframework.context.annotation.Primary
-      CodeMappingService.RetryFactory retryFactory() {
-        // Fast retry for tests: 1ms delays, max 3 attempts
-        return () ->
-            new ExponentialBackoffRetry(
-                java.time.Duration.ofMillis(1), java.time.Duration.ofMillis(1), 3);
-      }
-    }
-  }
+  static class TestApplication {}
 
   @Autowired private CodeMappingService codeMappingService;
 

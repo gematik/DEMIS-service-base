@@ -54,92 +54,14 @@ demis:
     client:
       base-url: https://futs.example.tld
       context-path: /
-    disease:
-      concept-maps:
-        - NotificationDiseaseCategoryToTransmissionCategory
-    laboratory:
-      concept-maps:
-        - NotificationCategoryToTransmissionCategory
+    concept-maps:
+      - NotificationDiseaseCategoryToTransmissionCategory
+      - NotificationCategoryToTransmissionCategory
 ```
 
-The `CodeMappingService` fetches all configured concept maps via the provided `CodeMappingClient`, merges them in declaration order (first value wins on duplicates) and caches the mappings. Reloads happen on startup and according to the configured cron expression. If no mappings can be loaded at all, the service raises a `CodeMappingUnavailableException` (error code `500`).
+The `CodeMappingService` fetches all configured concept maps via the provided `CodeMappingClient`, merges them in declaration order (first value wins on duplicates) and caches the mappings. Reloads happen on startup and according to the configured cron expression. 
 
-#### Retry Configuration
-
-The Code Mapping Library uses an exponential backoff retry mechanism when loading concept maps. Retry parameters can be configured via Spring properties.
-
-**Default Configuration:**
-
-Without additional configuration, the following defaults are used:
-
-```yaml
-demis:
-  codemapping:
-    retry:
-      initial-delay: 30s      # Initial delay before first retry
-      max-delay: 15m          # Maximum delay between retries
-      max-attempts: null      # Unlimited retry attempts
-```
-
-**Retry Behavior:**
-
-The retry mechanism doubles the wait time with each attempt:
-- 1st retry: 30 seconds
-- 2nd retry: 60 seconds
-- 3rd retry: 120 seconds (2 minutes)
-- 4th retry: 240 seconds (4 minutes)
-- 5th retry: 480 seconds (8 minutes)
-- 6th retry: 900 seconds (15 minutes) ← max-delay reached
-- 7+ retry: 900 seconds (15 minutes) ← stays at max-delay
-
-**Configuration Examples:**
-
-Development environment (faster retries):
-```yaml
-demis:
-  codemapping:
-    retry:
-      initial-delay: 5s
-      max-delay: 1m
-      max-attempts: 10
-```
-
-Production-critical services (aggressive retries):
-```yaml
-demis:
-  codemapping:
-    retry:
-      initial-delay: 10s
-      max-delay: 5m
-      max-attempts: 20
-```
-
-Limited retries with timeout:
-```yaml
-demis:
-  codemapping:
-    retry:
-      initial-delay: 30s
-      max-delay: 2m
-      max-attempts: 5  # Stops after 5 attempts
-```
-
-**Properties Reference:**
-
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `demis.codemapping.retry.initial-delay` | Duration | `30s` | Initial wait time before the first retry |
-| `demis.codemapping.retry.max-delay` | Duration | `15m` | Maximum wait time between retries |
-| `demis.codemapping.retry.max-attempts` | Integer | `null` | Maximum number of retry attempts (null = unlimited) |
-
-**Duration Format:**
-
-Spring Boot supports various formats for Duration:
-- Seconds: `30s`, `45s`
-- Minutes: `5m`, `15m`
-- Hours: `2h`
-- Combined: `1h30m`, `2m30s`
-- Milliseconds: `500ms`, `1000ms`
+If a concept map cannot be loaded (e.g., due to network issues or missing maps), it will be logged and skipped, allowing the service to continue with the remaining concept maps. If no mappings can be loaded at all, the service raises a `CodeMappingUnavailableException` (error code `500`).
 
 
 ## Security Policy

@@ -45,21 +45,8 @@ public class CodeMappingAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  CodeMappingService.RetryFactory retryFactory(final CodeMappingProperties properties) {
-    return () ->
-        new ExponentialBackoffRetry(
-            properties.getRetry().getInitialDelay(),
-            properties.getRetry().getMaxDelay(),
-            properties.getRetry().getMaxAttempts());
-  }
-
-  @Bean
-  @ConditionalOnMissingBean
   CodeMappingService codeMappingService(
-      final CodeMappingClient codeMappingClient,
-      final CodeMappingProperties properties,
-      final CodeMappingService.RetryFactory retryFactory) {
-    return new CodeMappingService(
-        codeMappingClient, properties, ReloadableCache::new, retryFactory);
+      final CodeMappingClient codeMappingClient, final CodeMappingProperties properties) {
+    return new CodeMappingService(codeMappingClient, properties, ReloadableCache::new);
   }
 }
