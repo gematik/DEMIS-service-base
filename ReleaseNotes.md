@@ -2,7 +2,10 @@
 
 # Release notes service-base
 
-## 2.9.1
+## 2.11.0
+- Added header forwarding from inbound Spring controller request to outbound Feign client request
+
+## 2.10.0
 - Consolidated code mapping to use a single unified cache instead of separate disease and laboratory caches for better performance and consistency
 
 ## 2.9.0
