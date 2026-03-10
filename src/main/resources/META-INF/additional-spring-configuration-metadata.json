@@ -27,6 +27,11 @@
       "defaultValue": true
     },
     {
+      "name": "base.feign.header.forwarding.enabled",
+      "type": "java.lang.Boolean",
+      "defaultValue": true
+    },
+    {
       "name": "base.feign.metrics.enabled",
       "type": "java.lang.Boolean",
       "defaultValue": true
