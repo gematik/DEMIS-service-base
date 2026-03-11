@@ -36,6 +36,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.matching.RequestPatternBuilder;
 import feign.RequestInterceptor;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
@@ -49,6 +50,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.cloud.contract.wiremock.AutoConfigureWireMock;
 import org.springframework.cloud.openfeign.EnableFeignClients;
+import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Service;
 import org.springframework.test.web.servlet.MockMvc;
@@ -374,6 +376,93 @@ class FeignHeaderForwardingIntegrationTest {
             interceptor.apply(template);
           }
         };
+      }
+    }
+  }
+
+  @SpringBootTest(
+      webEnvironment = SpringBootTest.WebEnvironment.MOCK,
+      classes = {FeignHeaderForwardingForSelectedClientTest.TestApp.class},
+      properties = {
+        "sample-client.url=http://localhost:${wiremock.server.port}",
+        "base.feign.forwarding.enabled=false"
+      })
+  @AutoConfigureWireMock(port = 0)
+  @AutoConfigureMockMvc
+  @Nested
+  class FeignHeaderForwardingForSelectedClientTest {
+
+    @Autowired MockMvc mockMvc;
+
+    @BeforeEach
+    void stubRemote() {
+      WireMock.stubFor(
+          WireMock.post("/test").willReturn(okForJson(new SampleFeignClient.MyResult("plain-ok"))));
+
+      WireMock.stubFor(
+          WireMock.post("/test-forwarded")
+              .willReturn(okForJson(new SampleFeignClient.MyResult("forwarded-ok"))));
+    }
+
+    @Test
+    void appliesHeaderForwardingOnlyToConfiguredFeignClient() throws Exception {
+      mockMvc
+          .perform(
+              post("/call-both")
+                  .header("x-custom-1", "forward-me")
+                  .header("x-not-forwarded", "nope"))
+          .andExpect(status().isOk());
+
+      WireMock.verify(
+          postRequestedFor(urlEqualTo("/test-forwarded"))
+              .withHeader("x-custom-1", equalTo("forward-me"))
+              .withoutHeader("x-not-forwarded"));
+
+      WireMock.verify(
+          postRequestedFor(urlEqualTo("/test"))
+              .withoutHeader("x-custom-1")
+              .withoutHeader("x-not-forwarded"));
+    }
+
+    @SpringBootApplication
+    @EnableFeignClients(clients = {SampleFeignClient.class, ForwardingFeignClient.class})
+    static class TestApp {
+
+      @RestController
+      @RequiredArgsConstructor
+      static class FlowController {
+
+        private final SampleFeignClient sampleFeignClient;
+        private final ForwardingFeignClient forwardingFeignClient;
+
+        @PostMapping("/call-both")
+        Map<String, Object> callBoth() {
+          var plain = sampleFeignClient.standardRequest();
+          var forwarded = forwardingFeignClient.forwardedRequest();
+
+          return Map.of(
+              "plain", plain,
+              "forwarded", forwarded);
+        }
+      }
+    }
+
+    @FeignClient(
+        name = "forwardingFeignClient",
+        url = "${sample-client.url}",
+        configuration = ForwardingFeignClientConfig.class)
+    interface ForwardingFeignClient {
+
+      @PostMapping("/test-forwarded")
+      SampleFeignClient.MyResult forwardedRequest();
+    }
+
+    @TestConfiguration
+    static class ForwardingFeignClientConfig {
+
+      @Bean
+      RequestInterceptor forwardingInterceptor() {
+        return new HeadersForwardingRequestInterceptor(Set.of("x-custom-1"));
       }
     }
   }

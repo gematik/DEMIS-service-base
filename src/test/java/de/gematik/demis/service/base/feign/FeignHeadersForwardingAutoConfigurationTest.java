@@ -79,6 +79,23 @@ class FeignHeadersForwardingAutoConfigurationTest {
   }
 
   @Test
+  void testDefaultsUsedWhenConfiguredHeadersContainOnlyBlankValues() {
+    FeignHeadersForwardingConfiguration config = new FeignHeadersForwardingConfiguration();
+
+    FeignHeaderForwardingProperties props = new FeignHeaderForwardingProperties();
+    props.setHeaders(Set.of("", "   "));
+
+    for (String header : DEFAULT_HEADERS_TO_FORWARD) {
+      when(inboundRequest.getHeader(header)).thenReturn("dummy-value");
+    }
+
+    applyFeignRequestTemplate(config, props);
+
+    assertThat(outboundRequest.headers().keySet())
+        .containsExactlyInAnyOrderElementsOf(DEFAULT_HEADERS_TO_FORWARD);
+  }
+
+  @Test
   void testCustomHeadersOverrideDefaults() {
     FeignHeadersForwardingConfiguration config = new FeignHeadersForwardingConfiguration();
 
