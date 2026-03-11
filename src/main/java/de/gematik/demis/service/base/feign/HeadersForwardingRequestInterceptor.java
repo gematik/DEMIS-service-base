@@ -146,11 +146,7 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 public final class HeadersForwardingRequestInterceptor implements RequestInterceptor {
 
   public static final Set<String> DEFAULT_HEADERS_TO_FORWARD =
-      Set.of(
-          "x-fhir-api-submission-type",
-          "x-fhir-api-version",
-          "x-fhir-profile",
-          "x-fhir-profile-version");
+      Set.of("x-fhir-api-version", "x-fhir-profile", "x-fhir-profile-version");
 
   private final Set<String> headersToForward;
 
@@ -177,6 +173,8 @@ public final class HeadersForwardingRequestInterceptor implements RequestInterce
     final RequestAttributes attrs = RequestContextHolder.getRequestAttributes();
     if (attrs instanceof ServletRequestAttributes servletAttrs) {
       copyHeadersIntoFeignRequest(servletAttrs.getRequest(), requestTemplate);
+    } else {
+      log.warn("Feign call triggered outside an HTTP request context. Header forwarding skipped.");
     }
   }
 

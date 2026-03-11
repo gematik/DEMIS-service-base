@@ -31,6 +31,7 @@ import static de.gematik.demis.service.base.feign.HeadersForwardingRequestInterc
 
 import jakarta.annotation.PostConstruct;
 import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -64,7 +65,15 @@ public class FeignHeadersForwardingConfiguration {
       FeignHeaderForwardingProperties props) {
 
     Set<String> headers =
-        props.getHeaders().isEmpty() ? DEFAULT_HEADERS_TO_FORWARD : props.getHeaders();
+        props.getHeaders().stream()
+            .map(String::trim)
+            .filter(s -> !s.isEmpty())
+            .collect(Collectors.toSet());
+
+    if (headers.isEmpty()) {
+      headers = DEFAULT_HEADERS_TO_FORWARD;
+    }
+
     return new HeadersForwardingRequestInterceptor(headers);
   }
 

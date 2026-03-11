@@ -2,6 +2,9 @@
 
 # Release notes service-base
 
+## 2.11.1
+- Add property normalization for feign interceptor and update default header list
+
 ## 2.11.0
 - Added header forwarding from inbound Spring controller request to outbound Feign client request
 
