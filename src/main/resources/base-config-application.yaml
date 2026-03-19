@@ -54,3 +54,6 @@ logging:
 feature:
     flag:
         move-error-id-to-diagnostics: ${FEATURE_FLAG_MOVE_ERROR_ID_TO_DIAGNOSTICS:false}
+        fhir:
+            core:
+                split: ${FEATURE_FLAG_FHIR_CORE_SPLIT:false}

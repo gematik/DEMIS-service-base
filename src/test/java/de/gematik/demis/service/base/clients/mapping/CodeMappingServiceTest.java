@@ -27,9 +27,12 @@ package de.gematik.demis.service.base.clients.mapping;
  * #L%
  */
 
+import static de.gematik.demis.service.base.clients.mapping.CodeMappingService.DEFAULT_FHIR_PROFILE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -57,10 +60,10 @@ class CodeMappingServiceTest {
 
   @Test
   void shouldLoadMappingsAndMapDiseaseCode() {
-    when(client.getConceptMap("DiseaseA")).thenReturn(Map.of("d1", "mapped"));
-    when(client.getConceptMap("LabA")).thenReturn(Map.of());
+    when(client.getConceptMap("DiseaseA", DEFAULT_FHIR_PROFILE)).thenReturn(Map.of("d1", "mapped"));
+    when(client.getConceptMap("LabA", DEFAULT_FHIR_PROFILE)).thenReturn(Map.of());
 
-    var service = new CodeMappingService(client, properties, cacheFactory);
+    var service = new CodeMappingService(client, properties, cacheFactory, false);
     service.loadConceptMaps();
 
     assertThat(service.mapCode("d1")).isEqualTo("mapped");
@@ -68,10 +71,10 @@ class CodeMappingServiceTest {
 
   @Test
   void shouldLoadMappingsAndMapLaboratoryCode() {
-    when(client.getConceptMap("DiseaseA")).thenReturn(Map.of());
-    when(client.getConceptMap("LabA")).thenReturn(Map.of("l1", "mappedLab"));
+    when(client.getConceptMap("DiseaseA", DEFAULT_FHIR_PROFILE)).thenReturn(Map.of());
+    when(client.getConceptMap("LabA", DEFAULT_FHIR_PROFILE)).thenReturn(Map.of("l1", "mappedLab"));
 
-    var service = new CodeMappingService(client, properties, cacheFactory);
+    var service = new CodeMappingService(client, properties, cacheFactory, false);
     service.loadConceptMaps();
 
     assertThat(service.mapCode("l1")).isEqualTo("mappedLab");
@@ -80,10 +83,10 @@ class CodeMappingServiceTest {
   @Test
   void shouldKeepFirstValueWhenDuplicateKeyAppears() {
     properties.setConceptMaps(List.of("DiseaseA", "DiseaseB"));
-    when(client.getConceptMap("DiseaseA")).thenReturn(Map.of("d1", "first"));
-    when(client.getConceptMap("DiseaseB")).thenReturn(Map.of("d1", "second"));
+    when(client.getConceptMap("DiseaseA", DEFAULT_FHIR_PROFILE)).thenReturn(Map.of("d1", "first"));
+    when(client.getConceptMap("DiseaseB", DEFAULT_FHIR_PROFILE)).thenReturn(Map.of("d1", "second"));
 
-    var service = new CodeMappingService(client, properties, cacheFactory);
+    var service = new CodeMappingService(client, properties, cacheFactory, false);
     service.loadConceptMaps();
 
     assertThat(service.mapCode("d1")).isEqualTo("first");
@@ -91,10 +94,10 @@ class CodeMappingServiceTest {
 
   @Test
   void shouldThrowWhenCacheEmpty() {
-    when(client.getConceptMap("DiseaseA")).thenReturn(Map.of());
-    when(client.getConceptMap("LabA")).thenReturn(Map.of());
+    when(client.getConceptMap("DiseaseA", DEFAULT_FHIR_PROFILE)).thenReturn(Map.of());
+    when(client.getConceptMap("LabA", DEFAULT_FHIR_PROFILE)).thenReturn(Map.of());
 
-    var service = new CodeMappingService(client, properties, cacheFactory);
+    var service = new CodeMappingService(client, properties, cacheFactory, false);
     service.loadConceptMaps();
 
     assertThatThrownBy(() -> service.mapCode("d1"))
@@ -105,11 +108,13 @@ class CodeMappingServiceTest {
   @Test
   void shouldHandleMissingConceptMapGracefully() {
     properties.setConceptMaps(List.of("DiseaseA", "MissingMap", "LabA"));
-    when(client.getConceptMap("DiseaseA")).thenReturn(Map.of("d1", "mappedDisease"));
-    when(client.getConceptMap("MissingMap")).thenThrow(new RuntimeException("404 Not Found"));
-    when(client.getConceptMap("LabA")).thenReturn(Map.of("l1", "mappedLab"));
+    when(client.getConceptMap("DiseaseA", DEFAULT_FHIR_PROFILE))
+        .thenReturn(Map.of("d1", "mappedDisease"));
+    when(client.getConceptMap("MissingMap", DEFAULT_FHIR_PROFILE))
+        .thenThrow(new RuntimeException("404 Not Found"));
+    when(client.getConceptMap("LabA", DEFAULT_FHIR_PROFILE)).thenReturn(Map.of("l1", "mappedLab"));
 
-    var service = new CodeMappingService(client, properties, cacheFactory);
+    var service = new CodeMappingService(client, properties, cacheFactory, false);
     service.loadConceptMaps();
 
     // Should still work with the available concept maps
@@ -123,7 +128,7 @@ class CodeMappingServiceTest {
     @Test
     void shouldRequireBaseUrl() {
       properties.getClient().setBaseUrl(" ");
-      assertThatThrownBy(() -> new CodeMappingService(client, properties, cacheFactory))
+      assertThatThrownBy(() -> new CodeMappingService(client, properties, cacheFactory, false))
           .isInstanceOf(IllegalStateException.class)
           .hasMessageContaining("base URL");
     }
@@ -131,7 +136,7 @@ class CodeMappingServiceTest {
     @Test
     void shouldRequireContextPath() {
       properties.getClient().setContextPath(null);
-      assertThatThrownBy(() -> new CodeMappingService(client, properties, cacheFactory))
+      assertThatThrownBy(() -> new CodeMappingService(client, properties, cacheFactory, false))
           .isInstanceOf(IllegalStateException.class)
           .hasMessageContaining("context path");
     }
@@ -139,7 +144,7 @@ class CodeMappingServiceTest {
     @Test
     void shouldRequireConceptMaps() {
       properties.setConceptMaps(List.of());
-      assertThatThrownBy(() -> new CodeMappingService(client, properties, cacheFactory))
+      assertThatThrownBy(() -> new CodeMappingService(client, properties, cacheFactory, false))
           .isInstanceOf(IllegalStateException.class)
           .hasMessageContaining("concept map");
     }
@@ -147,9 +152,135 @@ class CodeMappingServiceTest {
     @Test
     void shouldRequireCronExpression() {
       properties.setCacheReloadCron(" ");
-      assertThatThrownBy(() -> new CodeMappingService(client, properties, cacheFactory))
+      assertThatThrownBy(() -> new CodeMappingService(client, properties, cacheFactory, false))
           .isInstanceOf(IllegalStateException.class)
           .hasMessageContaining("cron");
+    }
+
+    @Test
+    void shouldRequireFhirProfileHeadersWhenFhirCoreSplitEnabled() {
+      properties.setFhirProfileHeaders(List.of());
+      assertThatThrownBy(() -> new CodeMappingService(client, properties, cacheFactory, true))
+          .isInstanceOf(IllegalStateException.class)
+          .hasMessageContaining("FHIR profile header");
+    }
+
+    @Test
+    void shouldNotRequireFhirProfileHeadersWhenFhirCoreSplitDisabled() {
+      properties.setFhirProfileHeaders(List.of());
+      // Should not throw when fhirCoreSplitEnabled is false
+      var service = new CodeMappingService(client, properties, cacheFactory, false);
+      assertThat(service).isNotNull();
+    }
+  }
+
+  @Nested
+  class FhirCoreSplit {
+
+    @BeforeEach
+    void setUpHeaders() {
+      properties.setFhirProfileHeaders(List.of("profile-a", "profile-b"));
+    }
+
+    @Test
+    void shouldLoadMappingsUsingAllHeaders() {
+      when(client.getConceptMap("DiseaseA", "profile-a")).thenReturn(Map.of("d1", "mappedA"));
+      when(client.getConceptMap("DiseaseA", "profile-b")).thenReturn(Map.of("d2", "mappedB"));
+      when(client.getConceptMap("LabA", "profile-a")).thenReturn(Map.of("l1", "labA"));
+      when(client.getConceptMap("LabA", "profile-b")).thenReturn(Map.of("l2", "labB"));
+
+      var service = new CodeMappingService(client, properties, cacheFactory, true);
+      service.loadConceptMaps();
+
+      assertThat(service.mapCode("d1")).isEqualTo("mappedA");
+      assertThat(service.mapCode("d2")).isEqualTo("mappedB");
+      assertThat(service.mapCode("l1")).isEqualTo("labA");
+      assertThat(service.mapCode("l2")).isEqualTo("labB");
+    }
+
+    @Test
+    void shouldUseConfiguredHeadersNotDefault() {
+      when(client.getConceptMap("DiseaseA", "profile-a")).thenReturn(Map.of("d1", "mapped"));
+      when(client.getConceptMap("DiseaseA", "profile-b")).thenReturn(Map.of());
+      when(client.getConceptMap("LabA", "profile-a")).thenReturn(Map.of());
+      when(client.getConceptMap("LabA", "profile-b")).thenReturn(Map.of());
+
+      var service = new CodeMappingService(client, properties, cacheFactory, true);
+      service.loadConceptMaps();
+
+      verify(client, never()).getConceptMap("DiseaseA", DEFAULT_FHIR_PROFILE);
+      verify(client, never()).getConceptMap("LabA", DEFAULT_FHIR_PROFILE);
+    }
+
+    @Test
+    void shouldKeepFirstValueOnDuplicateKeyAcrossHeaders() {
+      when(client.getConceptMap("DiseaseA", "profile-a")).thenReturn(Map.of("d1", "first"));
+      when(client.getConceptMap("DiseaseA", "profile-b")).thenReturn(Map.of("d1", "second"));
+      when(client.getConceptMap("LabA", "profile-a")).thenReturn(Map.of());
+      when(client.getConceptMap("LabA", "profile-b")).thenReturn(Map.of());
+
+      var service = new CodeMappingService(client, properties, cacheFactory, true);
+      service.loadConceptMaps();
+
+      assertThat(service.mapCode("d1")).isEqualTo("first");
+    }
+
+    @Test
+    void shouldContinueWithNextHeaderOnFailure() {
+      when(client.getConceptMap("DiseaseA", "profile-a"))
+          .thenThrow(new RuntimeException("connection refused"));
+      when(client.getConceptMap("DiseaseA", "profile-b")).thenReturn(Map.of("d1", "mapped"));
+      when(client.getConceptMap("LabA", "profile-a")).thenReturn(Map.of("l1", "labMapped"));
+      when(client.getConceptMap("LabA", "profile-b")).thenReturn(Map.of());
+
+      var service = new CodeMappingService(client, properties, cacheFactory, true);
+      service.loadConceptMaps();
+
+      assertThat(service.mapCode("d1")).isEqualTo("mapped");
+      assertThat(service.mapCode("l1")).isEqualTo("labMapped");
+    }
+
+    @Test
+    void shouldSkipConceptMapWhenAllHeadersFail() {
+      when(client.getConceptMap("DiseaseA", "profile-a")).thenThrow(new RuntimeException("error"));
+      when(client.getConceptMap("DiseaseA", "profile-b")).thenThrow(new RuntimeException("error"));
+      when(client.getConceptMap("LabA", "profile-a")).thenReturn(Map.of("l1", "labMapped"));
+      when(client.getConceptMap("LabA", "profile-b")).thenReturn(Map.of());
+
+      var service = new CodeMappingService(client, properties, cacheFactory, true);
+      service.loadConceptMaps();
+
+      // LabA still loaded even though DiseaseA failed with all headers
+      assertThat(service.mapCode("l1")).isEqualTo("labMapped");
+    }
+
+    @Test
+    void shouldThrowWhenAllConceptMapsFailWithAllHeaders() {
+      when(client.getConceptMap("DiseaseA", "profile-a")).thenThrow(new RuntimeException("error"));
+      when(client.getConceptMap("DiseaseA", "profile-b")).thenThrow(new RuntimeException("error"));
+      when(client.getConceptMap("LabA", "profile-a")).thenThrow(new RuntimeException("error"));
+      when(client.getConceptMap("LabA", "profile-b")).thenThrow(new RuntimeException("error"));
+
+      var service = new CodeMappingService(client, properties, cacheFactory, true);
+      service.loadConceptMaps();
+
+      assertThatThrownBy(() -> service.mapCode("d1"))
+          .isInstanceOf(CodeMappingUnavailableException.class)
+          .hasMessageContaining("not available");
+    }
+
+    @Test
+    void shouldMergeResultsFromMultipleHeadersForSameConceptMap() {
+      when(client.getConceptMap("DiseaseA", "profile-a")).thenReturn(Map.of("d1", "disease1"));
+      when(client.getConceptMap("DiseaseA", "profile-b")).thenReturn(Map.of("d2", "disease2"));
+      when(client.getConceptMap("LabA", "profile-a")).thenReturn(Map.of());
+      when(client.getConceptMap("LabA", "profile-b")).thenReturn(Map.of());
+
+      var service = new CodeMappingService(client, properties, cacheFactory, true);
+      service.loadConceptMaps();
+
+      assertThat(service.mapCode("d1")).isEqualTo("disease1");
+      assertThat(service.mapCode("d2")).isEqualTo("disease2");
     }
   }
 }

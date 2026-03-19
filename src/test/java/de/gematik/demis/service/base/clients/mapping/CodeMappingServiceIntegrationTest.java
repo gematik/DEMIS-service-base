@@ -28,6 +28,7 @@ package de.gematik.demis.service.base.clients.mapping;
  */
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
@@ -52,7 +53,8 @@ import org.springframework.test.annotation.DirtiesContext;
       "demis.codemapping.client.base-url=http://localhost:${wiremock.server.port}",
       "demis.codemapping.client.context-path=/",
       "demis.codemapping.concept-maps[0]=DiseaseA",
-      "demis.codemapping.concept-maps[1]=LabA"
+      "demis.codemapping.concept-maps[1]=LabA",
+      "feature.flag.fhir.core.split=false"
     })
 @AutoConfigureWireMock(port = 0)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
@@ -95,6 +97,7 @@ class CodeMappingServiceIntegrationTest {
   private void stubConceptMap(final String name, final String body) {
     stubFor(
         get(urlEqualTo("/conceptmap/" + name))
+            .withHeader("x-fhir-profile", equalTo("fhir-profile-snapshots"))
             .willReturn(
                 aResponse()
                     .withStatus(200)
