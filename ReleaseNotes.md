@@ -2,6 +2,13 @@
 
 # Release notes service-base
 
+## 2.13.0
+- Extended CodeMappingService to support routing concept map requests to multiple FHIR profile instances via configurable `x-fhir-profile` headers (`demis.codemapping.fhir-profile-headers`)
+- Added feature flag `feature.flag.fhir.core.split` (env: `FEATURE_FLAG_FHIR_CORE_SPLIT`, default: `false`) to enable the new header-based routing. When disabled, the default header `fhir-profile-snapshots` is used
+- Consolidated CodeMappingClient to a single `getConceptMap(String, String)` method — the `x-fhir-profile` header is now always passed explicitly by the caller
+- Adjusted error handling: when FHIR core split is enabled, an error for a concept map is only logged when all configured headers fail
+- Added integration tests for both legacy mode (feature flag disabled) and FHIR core split mode (feature flag enabled)
+
 ## 2.12.0
 - updated java to version 25
 

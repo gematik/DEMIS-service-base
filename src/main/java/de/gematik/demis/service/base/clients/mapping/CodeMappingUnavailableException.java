@@ -29,6 +29,7 @@ package de.gematik.demis.service.base.clients.mapping;
 
 import de.gematik.demis.service.base.error.ErrorCodeSupplier;
 
+/** Thrown when the code mapping cache is empty or could not be loaded. */
 public class CodeMappingUnavailableException extends RuntimeException implements ErrorCodeSupplier {
 
   public static final String ERROR_CODE = "500";

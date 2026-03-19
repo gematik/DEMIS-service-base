@@ -53,7 +53,7 @@ class CodeMappingAutoConfigurationTest {
       props.getClient().setBaseUrl("http://example");
       props.getClient().setContextPath("/");
       props.setConceptMaps(List.of("DiseaseA", "LabA"));
-      return new CodeMappingService(client, props, ReloadableCache::new);
+      return new CodeMappingService(client, props, ReloadableCache::new, false);
     }
   }
 

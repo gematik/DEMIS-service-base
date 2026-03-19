@@ -63,6 +63,109 @@ The `CodeMappingService` fetches all configured concept maps via the provided `C
 
 If a concept map cannot be loaded (e.g., due to network issues or missing maps), it will be logged and skipped, allowing the service to continue with the remaining concept maps. If no mappings can be loaded at all, the service raises a `CodeMappingUnavailableException` (error code `500`).
 
+#### FHIR Core Split
+
+When the FHIR snapshots are split across multiple service instances (routed via the `x-fhir-profile` header), enable the feature flag and configure the profile headers:
+
+```yaml
+feature:
+  flag:
+    fhir:
+      core:
+        split: true
+
+demis:
+  codemapping:
+    enabled: true
+    cache-reload-cron: 0 */5 * * * *
+    client:
+      base-url: https://futs.example.tld
+      context-path: /
+    concept-maps:
+      - NotificationDiseaseCategoryToTransmissionCategory
+      - NotificationCategoryToTransmissionCategory
+    fhir-profile-headers:
+      - fhir-profile-snapshots-a
+      - fhir-profile-snapshots-b
+```
+
+When `feature.flag.fhir.core.split=true`, the `CodeMappingService` iterates through all configured `fhir-profile-headers` for each concept map, passing them as the `x-fhir-profile` request header. Results from all successful calls are merged. An error for a concept map is only logged when **all** configured headers fail for that concept map.
+
+## How DEMIS code mapping works
+
+The DEMIS code mapping feature provides a way to resolve input codes (for example, disease codes) to target codes using an external Code Mapping Service. It is implemented in a way that minimizes network calls and shields callers from temporary outages by using an in-memory cache with periodic reloads.
+
+### Components
+
+- `CodeMappingClient`
+  - A Spring Cloud OpenFeign client that calls the external Code Mapping Service.
+  - Exposes a single operation `getConceptMap(String name, String fhirProfile)` that returns a key/value map for a given concept map name, routing via the `x-fhir-profile` header.
+
+- `CodeMappingService`
+  - Main entry point for application code.
+  - Uses `CodeMappingClient` to fetch concept maps and keeps them in a read-only in-memory cache (`ReloadableCache`).
+  - Public API: `mapCode(String diseaseCode)` which returns the mapped value (or `null` if no mapping exists).
+
+- `ReloadableCache`
+  - Small, generic cache wrapper that holds the merged concept maps.
+  - Uses a `Supplier<Map<String, String>>` to (re)load data and swaps the internal map atomically.
+
+- `CodeMappingProperties`
+  - Binds to the `demis.codemapping.*` configuration properties.
+  - Controls whether the feature is enabled, which concept maps to load, how often the cache is reloaded, and the list of FHIR profile headers.
+
+- `CodeMappingAutoConfiguration`
+  - Auto-configures `CodeMappingService` and its dependencies when `demis.codemapping.enabled=true` and Spring Cloud OpenFeign is on the classpath.
+
+### High-level flow
+
+1. **Startup / bean creation**
+   - When `demis.codemapping.enabled=true`, Spring Boot creates `CodeMappingService` via `CodeMappingAutoConfiguration`.
+   - The constructor of `CodeMappingService` validates `CodeMappingProperties` and prepares the list of concept maps to load.
+   - When the FHIR core split feature flag is enabled, at least one FHIR profile header must also be configured.
+   - A `ReloadableCache<String, String>` is created with a supplier pointing to `CodeMappingService.loadConceptMaps(List<String>)`.
+
+2. **Initial load (lazy)**
+   - The cache is not preloaded during construction.
+   - On the first call to `CodeMappingService.mapCode(String)`, the service checks whether the cache already has entries.
+   - If not, it calls `cache.loadCache()`, which in turn uses the supplier to fetch all configured concept maps via the `CodeMappingClient`.
+   - All returned concept maps are merged into a single `Map<String, String>`; duplicate keys keep the first value and are logged as warnings.
+   - Only a non-empty result replaces the current cache snapshot.
+
+3. **Scheduled reload**
+   - A scheduled method `loadConceptMapsScheduled()` is annotated with `@Scheduled(cron = "${demis.codemapping.cache-reload-cron}")`.
+   - According to the configured cron expression, this method periodically triggers `cache.loadCache()`.
+   - The reload replaces the internal immutable map atomically, so concurrent readers either see the old snapshot or the new one, but never a partially updated map.
+
+4. **Using the mapping API**
+   - Callers resolve a code via `CodeMappingService.mapCode(String diseaseCode)`.
+   - If no cache data is available even after a reload attempt, a `CodeMappingUnavailableException` is thrown to signal that mappings are currently not available.
+   - If the cache contains data but the specific key is missing, the method logs this and returns `null` so callers can decide how to handle unmapped codes.
+
+### Configuration
+
+The following properties control DEMIS code mapping (see `CodeMappingProperties`):
+
+- `demis.codemapping.enabled` (boolean)
+  - Enables or disables the code mapping feature.
+
+- `demis.codemapping.cache-reload-cron` (String)
+  - Cron expression for periodic cache reloads.
+
+- `demis.codemapping.client.base-url` (String)
+  - Base URL of the external Code Mapping Service used by the Feign client.
+
+- `demis.codemapping.client.context-path` (String)
+  - Context path that is prefixed to the concept map endpoint.
+
+- `demis.codemapping.concept-maps` (List<String>)
+  - Names of the concept maps to load and merge into the cache.
+
+- `demis.codemapping.fhir-profile-headers` (List<String>)
+  - List of `x-fhir-profile` header values used when `feature.flag.fhir.core.split=true`. Each header is used to fetch concept maps from the corresponding FHIR profile instance.
+
+- `feature.flag.fhir.core.split` (boolean)
+  - Enables or disables the FHIR core split feature. When enabled, the service uses the configured `fhir-profile-headers` to route requests to specific FHIR profile instances.
 
 ## Security Policy
 If you want to see the security policy, please check our [SECURITY.md](.github/SECURITY.md).

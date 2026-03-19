@@ -27,6 +27,7 @@ package de.gematik.demis.service.base.clients.mapping;
  * #L%
  */
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -36,6 +37,12 @@ import org.springframework.cloud.openfeign.FeignClientFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
+/**
+ * Auto-configuration for the Code Mapping Service.
+ *
+ * <p>Activates when {@code demis.codemapping.enabled=true} and Spring Cloud OpenFeign is on the
+ * classpath.
+ */
 @AutoConfiguration
 @EnableConfigurationProperties(CodeMappingProperties.class)
 @ConditionalOnClass(FeignClientFactory.class)
@@ -46,7 +53,10 @@ public class CodeMappingAutoConfiguration {
   @Bean
   @ConditionalOnMissingBean
   CodeMappingService codeMappingService(
-      final CodeMappingClient codeMappingClient, final CodeMappingProperties properties) {
-    return new CodeMappingService(codeMappingClient, properties, ReloadableCache::new);
+      final CodeMappingClient codeMappingClient,
+      final CodeMappingProperties properties,
+      @Value("${feature.flag.fhir.core.split:false}") final boolean fhirCoreSplitEnabled) {
+    return new CodeMappingService(
+        codeMappingClient, properties, ReloadableCache::new, fhirCoreSplitEnabled);
   }
 }

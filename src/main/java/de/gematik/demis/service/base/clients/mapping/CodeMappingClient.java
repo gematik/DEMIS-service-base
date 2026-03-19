@@ -29,27 +29,30 @@ package de.gematik.demis.service.base.clients.mapping;
 
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 
-import feign.Headers;
 import java.util.Map;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestHeader;
 
-/** Client for mapping codes from the demis.codemapping service. */
+/** Feign client for retrieving concept maps from the Code Mapping Service. */
 @FeignClient(name = "codeMappingClient", url = "${demis.codemapping.client.base-url}")
 @ConditionalOnProperty(name = "demis.codemapping.enabled", havingValue = "true")
 public interface CodeMappingClient {
 
   /**
-   * Retrieves the concept map for the given concept name.
+   * Retrieves the concept map for the given concept name, routing via the {@code x-fhir-profile}
+   * header.
    *
    * @param conceptName the name of the concept
+   * @param fhirProfile the value for the {@code x-fhir-profile} header
    * @return a map of string key-value pairs representing the concept map
    */
   @GetMapping(
       value = "${demis.codemapping.client.context-path}conceptmap/{name}",
       produces = APPLICATION_JSON_VALUE)
-  @Headers("x-fhir-profile: fhir-profile-snapshots")
-  Map<String, String> getConceptMap(@PathVariable("name") String conceptName);
+  Map<String, String> getConceptMap(
+      @PathVariable("name") String conceptName,
+      @RequestHeader("x-fhir-profile") String fhirProfile);
 }

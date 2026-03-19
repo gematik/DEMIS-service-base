@@ -32,6 +32,13 @@ import java.util.function.Supplier;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * Thread-safe cache with lazy loading and full replacement.
+ *
+ * <p>The cache loads its entries on first access or when explicitly reloaded. Reloading replaces
+ * the current snapshot atomically, so readers always see either the previous or the newly loaded
+ * state. If reloading fails, the previous snapshot is retained.
+ */
 @RequiredArgsConstructor
 @Slf4j
 class ReloadableCache<T, U> {
@@ -42,6 +49,12 @@ class ReloadableCache<T, U> {
   @SuppressWarnings({"java:S3077"})
   private volatile Map<T, U> map;
 
+  /**
+   * Returns the cached value for the given key, triggering an initial load if necessary.
+   *
+   * @param key the key to look up
+   * @return the cached value, or {@code null} if not found or the cache is empty
+   */
   U getValue(final T key) {
     var currentMap = map;
     if (currentMap == null) {
@@ -60,6 +73,9 @@ class ReloadableCache<T, U> {
     return result;
   }
 
+  /**
+   * Reloads the cache from the configured supplier. On failure the previous snapshot is retained.
+   */
   void loadCache() {
     try {
       final var newMap = cacheValuesSupplier.get();
@@ -74,11 +90,13 @@ class ReloadableCache<T, U> {
     }
   }
 
+  /** Returns {@code true} if the cache holds a non-empty snapshot. */
   boolean hasEntries() {
     final var snapshot = map;
     return snapshot != null && !snapshot.isEmpty();
   }
 
+  /** Returns the logical name of this cache instance (used for logging). */
   String getCacheName() {
     return this.name;
   }
