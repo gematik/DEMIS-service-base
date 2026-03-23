@@ -28,10 +28,13 @@ package de.gematik.demis.service.base.clients.mapping;
  */
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.absent;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.verify;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -73,8 +76,8 @@ class CodeMappingServiceIntegrationTest {
 
   @Test
   void shouldLoadMappingsFromRemoteService() {
-    stubConceptMap("DiseaseA", "{\"d1\":\"mappedDisease\"}");
-    stubConceptMap("LabA", "{\"l1\":\"mappedLab\"}");
+    stubConceptMapWithHeader("DiseaseA", "{\"d1\":\"mappedDisease\"}");
+    stubConceptMapWithHeader("LabA", "{\"l1\":\"mappedLab\"}");
 
     codeMappingService.loadConceptMaps();
 
@@ -84,8 +87,8 @@ class CodeMappingServiceIntegrationTest {
 
   @Test
   void shouldRaiseExceptionWhenConceptMapIsEmpty() {
-    stubConceptMap("DiseaseA", "{}");
-    stubConceptMap("LabA", "{}");
+    stubConceptMapWithHeader("DiseaseA", "{}");
+    stubConceptMapWithHeader("LabA", "{}");
 
     codeMappingService.loadConceptMaps();
 
@@ -94,10 +97,58 @@ class CodeMappingServiceIntegrationTest {
         .hasMessageContaining("not available");
   }
 
-  private void stubConceptMap(final String name, final String body) {
+  @Test
+  void shouldFallBackToLegacyCallOn403() {
+    stubConceptMapWithHeaderReturns403("DiseaseA");
+    stubConceptMapWithoutHeader("DiseaseA", "{\"d1\":\"fallbackDisease\"}");
+    stubConceptMapWithHeaderReturns403("LabA");
+    stubConceptMapWithoutHeader("LabA", "{\"l1\":\"fallbackLab\"}");
+
+    codeMappingService.loadConceptMaps();
+
+    assertThat(codeMappingService.mapCode("d1")).isEqualTo("fallbackDisease");
+    assertThat(codeMappingService.mapCode("l1")).isEqualTo("fallbackLab");
+
+    verify(
+        getRequestedFor(urlEqualTo("/conceptmap/DiseaseA"))
+            .withHeader("x-fhir-profile", equalTo("fhir-profile-snapshots")));
+    verify(getRequestedFor(urlEqualTo("/conceptmap/DiseaseA")).withoutHeader("x-fhir-profile"));
+  }
+
+  @Test
+  void shouldFallBackPartiallyWhenOnly403ForSomeMaps() {
+    stubConceptMapWithHeaderReturns403("DiseaseA");
+    stubConceptMapWithoutHeader("DiseaseA", "{\"d1\":\"fallbackDisease\"}");
+    stubConceptMapWithHeader("LabA", "{\"l1\":\"directLab\"}");
+
+    codeMappingService.loadConceptMaps();
+
+    assertThat(codeMappingService.mapCode("d1")).isEqualTo("fallbackDisease");
+    assertThat(codeMappingService.mapCode("l1")).isEqualTo("directLab");
+  }
+
+  private void stubConceptMapWithHeader(final String name, final String body) {
     stubFor(
         get(urlEqualTo("/conceptmap/" + name))
             .withHeader("x-fhir-profile", equalTo("fhir-profile-snapshots"))
+            .willReturn(
+                aResponse()
+                    .withStatus(200)
+                    .withHeader("Content-Type", "application/json")
+                    .withBody(body)));
+  }
+
+  private void stubConceptMapWithHeaderReturns403(final String name) {
+    stubFor(
+        get(urlEqualTo("/conceptmap/" + name))
+            .withHeader("x-fhir-profile", equalTo("fhir-profile-snapshots"))
+            .willReturn(aResponse().withStatus(403).withBody("RBAC: access denied")));
+  }
+
+  private void stubConceptMapWithoutHeader(final String name, final String body) {
+    stubFor(
+        get(urlEqualTo("/conceptmap/" + name))
+            .withHeader("x-fhir-profile", absent())
             .willReturn(
                 aResponse()
                     .withStatus(200)

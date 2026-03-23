@@ -27,6 +27,8 @@ package de.gematik.demis.service.base.clients.mapping;
  * #L%
  */
 
+import de.gematik.demis.service.base.error.ServiceCallException;
+import feign.FeignException;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -84,15 +86,18 @@ import org.springframework.util.StringUtils;
  *
  * <ol>
  *   <li>{@link #loadConceptMaps(java.util.List)} iterates over all configured concept map names.
- *   <li><b>Default mode (FHIR core split disabled):</b> For each concept map {@link
- *       CodeMappingClient#getConceptMap(String, String)} is called with the default header value
- *       {@value #DEFAULT_FHIR_PROFILE}. Each result is a key-value map (for example from disease
- *       code to target code).
+ *   <li><b>Default mode (FHIR core split disabled):</b> For each concept map the service first
+ *       attempts to call {@link CodeMappingClient#getConceptMapWithHeader(String, String)} with the
+ *       default header value {@value #DEFAULT_FHIR_PROFILE}. If this call results in an HTTP 403
+ *       (e.g. because the Istio routing rules have not yet been updated for the new header), the
+ *       service falls back to {@link CodeMappingClient#getConceptMap(String)} which sends no {@code
+ *       x-fhir-profile} header. This fallback ensures backward compatibility during the transition
+ *       period.
  *   <li><b>FHIR core split mode (feature flag enabled):</b> For each concept map, the service
  *       iterates through all configured {@code x-fhir-profile} header values and calls {@link
- *       CodeMappingClient#getConceptMap(String, String)} for each header. Results from all
- *       successful calls are merged into the cache. Only if none of the headers returns data for a
- *       given concept map, an error is logged for that concept map.
+ *       CodeMappingClient#getConceptMapWithHeader(String, String)} for each header. Results from
+ *       all successful calls are merged into the cache. Only if none of the headers returns data
+ *       for a given concept map, an error is logged for that concept map.
  *   <li>All concept maps are merged into a single {@link java.util.LinkedHashMap}. If a duplicate
  *       key is encountered, the first value is kept and a warning is logged. This makes the result
  *       deterministic while still exposing collisions.
@@ -128,6 +133,8 @@ import org.springframework.util.StringUtils;
  * <ul>
  *   <li>Failures while loading individual concept maps do not abort the overall loading process;
  *       only the affected map is skipped.
+ *   <li>In default mode, a 403 from the header-based call triggers a transparent fallback to the
+ *       legacy call without header. Other errors skip the concept map directly.
  *   <li>When FHIR core split is enabled, a failure with one header for a concept map does not
  *       prevent attempts with the remaining headers. An error for a concept map is only logged when
  *       all configured headers fail.
@@ -217,13 +224,48 @@ public class CodeMappingService {
     return merged;
   }
 
+  private static final int HTTP_FORBIDDEN = 403;
+
   private void loadConceptMapDefault(
       final String concept, final LinkedHashMap<String, String> merged) {
     try {
-      final var map = codeMappingClient.getConceptMap(concept, DEFAULT_FHIR_PROFILE);
+      final var map = codeMappingClient.getConceptMapWithHeader(concept, DEFAULT_FHIR_PROFILE);
       mergeMap(map, concept, merged);
     } catch (Exception e) {
-      log.error("Failed to load concept map: {} - skipping", concept, e);
+      if (isForbidden(e)) {
+        log.warn(
+            "Received 403 for concept map {} with header - falling back to legacy call without"
+                + " header",
+            concept);
+        loadConceptMapLegacy(concept, merged);
+      } else {
+        log.error("Failed to load concept map: {} - skipping", concept, e);
+      }
+    }
+  }
+
+  /**
+   * Checks whether the given exception signals an HTTP 403 Forbidden response. Handles both raw
+   * {@link FeignException} (when no custom error decoder is active) and {@link
+   * ServiceCallException} (when the {@code FeignErrorDecoder} wraps the original exception).
+   */
+  private static boolean isForbidden(final Exception e) {
+    if (e instanceof FeignException fe) {
+      return fe.status() == HTTP_FORBIDDEN;
+    }
+    if (e instanceof ServiceCallException sce) {
+      return sce.getHttpStatus() == HTTP_FORBIDDEN;
+    }
+    return false;
+  }
+
+  private void loadConceptMapLegacy(
+      final String concept, final LinkedHashMap<String, String> merged) {
+    try {
+      final var map = codeMappingClient.getConceptMap(concept);
+      mergeMap(map, concept, merged);
+    } catch (Exception e) {
+      log.error("Failed to load concept map: {} via legacy fallback - skipping", concept, e);
     }
   }
 
@@ -232,7 +274,7 @@ public class CodeMappingService {
     boolean anySuccess = false;
     for (final var header : fhirProfileHeaders) {
       try {
-        final var map = codeMappingClient.getConceptMap(concept, header);
+        final var map = codeMappingClient.getConceptMapWithHeader(concept, header);
         mergeMap(map, concept, merged);
         anySuccess = true;
       } catch (Exception e) {
