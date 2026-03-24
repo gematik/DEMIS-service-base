@@ -52,6 +52,22 @@ import org.springframework.web.context.request.ServletWebRequest;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
+/**
+ * Global REST exception handler that translates exceptions into standardized {@link
+ * de.gematik.demis.service.base.error.rest.api.ErrorDTO} responses.
+ *
+ * <p>Maps different exception types to appropriate HTTP status codes:
+ *
+ * <ul>
+ *   <li>{@link ServiceException} &rarr; status from exception or 500
+ *   <li>{@link ValidationException} &rarr; 400 Bad Request
+ *   <li>{@link ServiceCallException} &rarr; 502 Bad Gateway (server error) or 500
+ *   <li>{@link UnsupportedOperationException} &rarr; 501 Not Implemented
+ *   <li>{@link ConnectException} (as cause) &rarr; 503 Service Unavailable
+ *   <li>{@link SocketTimeoutException} (as cause) &rarr; 504 Gateway Timeout
+ *   <li>Other exceptions &rarr; 500 Internal Server Error
+ * </ul>
+ */
 @RestControllerAdvice
 @RequiredArgsConstructor
 @Slf4j
@@ -72,6 +88,11 @@ public class RestExceptionHandler extends ResponseEntityExceptionHandler {
     return false;
   }
 
+  /**
+   * Handles generic exceptions as fallback. Inspects the cause chain to determine a more specific
+   * HTTP status code (503 for {@link ConnectException}, 504 for {@link SocketTimeoutException}).
+   * Defaults to 500 Internal Server Error.
+   */
   @ExceptionHandler(Exception.class)
   public final ResponseEntity<Object> handleServerException(
       final Exception ex, final WebRequest request) {
@@ -86,6 +107,10 @@ public class RestExceptionHandler extends ResponseEntityExceptionHandler {
     return handleError(responseStatus, ex, request, null);
   }
 
+  /**
+   * Handles {@link ServiceException}s using the HTTP status provided by the exception. Falls back
+   * to 500 Internal Server Error if no status is specified.
+   */
   @ExceptionHandler(ServiceException.class)
   public final ResponseEntity<Object> handleServiceException(
       final ServiceException ex, final WebRequest request) {
@@ -94,12 +119,17 @@ public class RestExceptionHandler extends ResponseEntityExceptionHandler {
     return handleError(responseStatus, ex, request, ex.getMessage());
   }
 
+  /** Handles {@link ValidationException}s as 400 Bad Request, indicating invalid client input. */
   @ExceptionHandler(ValidationException.class)
   public final ResponseEntity<Object> handleClientException(
       final Exception ex, final WebRequest request) {
     return handleError(HttpStatus.BAD_REQUEST, ex, request, ex.getMessage());
   }
 
+  /**
+   * Handles {@link ServiceCallException}s from downstream service calls. Returns 502 Bad Gateway
+   * for server-side errors from the downstream service, or 500 Internal Server Error otherwise.
+   */
   @ExceptionHandler(ServiceCallException.class)
   public final ResponseEntity<Object> handleFeignException(
       final ServiceCallException ex, final WebRequest request) {
@@ -108,6 +138,16 @@ public class RestExceptionHandler extends ResponseEntityExceptionHandler {
             ? HttpStatus.BAD_GATEWAY
             : HttpStatus.INTERNAL_SERVER_ERROR;
     return handleError(responseStatus, ex, request, null);
+  }
+
+  /**
+   * Handles {@link UnsupportedOperationException}s as 501 Not Implemented. Use this to signal that
+   * a requested feature or operation is not yet active or supported.
+   */
+  @ExceptionHandler(UnsupportedOperationException.class)
+  public final ResponseEntity<Object> handleUnsupportedOperationException(
+      final UnsupportedOperationException ex, final WebRequest request) {
+    return handleError(HttpStatus.NOT_IMPLEMENTED, ex, request, ex.getMessage());
   }
 
   @Override

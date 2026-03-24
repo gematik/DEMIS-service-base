@@ -36,6 +36,7 @@ import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.GATEWAY_TIMEOUT;
 import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
+import static org.springframework.http.HttpStatus.NOT_IMPLEMENTED;
 import static org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -140,6 +141,19 @@ class RestExceptionHandlerIntegrationTest {
     final String errorCode = "56a";
     doThrow(new ServiceCallException("blah", errorCode, 500, null)).when(service).doSomething();
     validRequest().andExpectAll(matchErrorResponse(BAD_GATEWAY, errorCode, null));
+  }
+
+  @Test
+  void validRequest_UnsupportedOperationException() throws Exception {
+    doThrow(UnsupportedOperationException.class).when(service).doSomething();
+    validRequest().andExpectAll(matchErrorResponse(NOT_IMPLEMENTED));
+  }
+
+  @Test
+  void validRequest_UnsupportedOperationExceptionWithMessage() throws Exception {
+    final String message = "Feature XYZ is not yet active";
+    doThrow(new UnsupportedOperationException(message)).when(service).doSomething();
+    validRequest().andExpectAll(matchErrorResponse(NOT_IMPLEMENTED, null, message));
   }
 
   @Test

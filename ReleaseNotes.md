@@ -2,6 +2,13 @@
 
 # Release notes service-base
 
+## Release 2.14.0
+- extended rest exception handling with UnsupportedOperationException processing
+- services using the error handling can now return a HTTP 501 with a custom message for unsupported operations instead of a generic HTTP 500
+
+## Release 2.13.1
+- fixed a bug in the fallback logic for concept map retrieval when FHIR core split is enabled
+
 ## Release 2.13.0
 - Extended CodeMappingService to support routing concept map requests to multiple FHIR profile instances via configurable `x-fhir-profile` headers (`demis.codemapping.fhir-profile-headers`)
 - Added feature flag `feature.flag.fhir.core.split` (env: `FEATURE_FLAG_FHIR_CORE_SPLIT`, default: `false`) to enable the new header-based routing
