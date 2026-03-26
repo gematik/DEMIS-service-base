@@ -56,8 +56,8 @@ import org.springframework.test.annotation.DirtiesContext;
       "demis.codemapping.client.context-path=/",
       "demis.codemapping.concept-maps[0]=DiseaseA",
       "demis.codemapping.concept-maps[1]=LabA",
-      "demis.codemapping.fhir-profile-headers[0]=profile-a",
-      "demis.codemapping.fhir-profile-headers[1]=profile-b",
+      "demis.codemapping.fhir-package-headers[0]=pkg-a",
+      "demis.codemapping.fhir-package-headers[1]=pkg-b",
       "feature.flag.fhir.core.split=true"
     })
 @AutoConfigureWireMock(port = 0)
@@ -76,34 +76,34 @@ class CodeMappingServiceFhirCoreSplitIntegrationTest {
   }
 
   @Test
-  void shouldSendFhirProfileHeaderInRequests() {
-    stubConceptMapWithHeader("DiseaseA", "profile-a", "{\"d1\":\"mappedDisease\"}");
-    stubConceptMapWithHeader("DiseaseA", "profile-b", "{}");
-    stubConceptMapWithHeader("LabA", "profile-a", "{}");
-    stubConceptMapWithHeader("LabA", "profile-b", "{\"l1\":\"mappedLab\"}");
+  void shouldSendFhirPackageHeaderInRequests() {
+    stubConceptMapWithHeader("DiseaseA", "pkg-a", "{\"d1\":\"mappedDisease\"}");
+    stubConceptMapWithHeader("DiseaseA", "pkg-b", "{}");
+    stubConceptMapWithHeader("LabA", "pkg-a", "{}");
+    stubConceptMapWithHeader("LabA", "pkg-b", "{\"l1\":\"mappedLab\"}");
 
     codeMappingService.loadConceptMaps();
 
     verify(
         getRequestedFor(urlEqualTo("/conceptmap/DiseaseA"))
-            .withHeader("x-fhir-profile", equalTo("profile-a")));
+            .withHeader("x-fhir-package", equalTo("pkg-a")));
     verify(
         getRequestedFor(urlEqualTo("/conceptmap/DiseaseA"))
-            .withHeader("x-fhir-profile", equalTo("profile-b")));
+            .withHeader("x-fhir-package", equalTo("pkg-b")));
     verify(
         getRequestedFor(urlEqualTo("/conceptmap/LabA"))
-            .withHeader("x-fhir-profile", equalTo("profile-a")));
+            .withHeader("x-fhir-package", equalTo("pkg-a")));
     verify(
         getRequestedFor(urlEqualTo("/conceptmap/LabA"))
-            .withHeader("x-fhir-profile", equalTo("profile-b")));
+            .withHeader("x-fhir-package", equalTo("pkg-b")));
   }
 
   @Test
   void shouldLoadMappingsFromMultipleHeaders() {
-    stubConceptMapWithHeader("DiseaseA", "profile-a", "{\"d1\":\"mappedDisease\"}");
-    stubConceptMapWithHeader("DiseaseA", "profile-b", "{\"d2\":\"mappedDisease2\"}");
-    stubConceptMapWithHeader("LabA", "profile-a", "{\"l1\":\"mappedLab\"}");
-    stubConceptMapWithHeader("LabA", "profile-b", "{\"l2\":\"mappedLab2\"}");
+    stubConceptMapWithHeader("DiseaseA", "pkg-a", "{\"d1\":\"mappedDisease\"}");
+    stubConceptMapWithHeader("DiseaseA", "pkg-b", "{\"d2\":\"mappedDisease2\"}");
+    stubConceptMapWithHeader("LabA", "pkg-a", "{\"l1\":\"mappedLab\"}");
+    stubConceptMapWithHeader("LabA", "pkg-b", "{\"l2\":\"mappedLab2\"}");
 
     codeMappingService.loadConceptMaps();
 
@@ -115,10 +115,10 @@ class CodeMappingServiceFhirCoreSplitIntegrationTest {
 
   @Test
   void shouldMergeResultsWhenOnlyOneHeaderReturnsData() {
-    stubConceptMapWithHeader("DiseaseA", "profile-a", "{\"d1\":\"mappedDisease\"}");
-    stubConceptMapWithHeader("DiseaseA", "profile-b", "{}");
-    stubConceptMapWithHeader("LabA", "profile-a", "{}");
-    stubConceptMapWithHeader("LabA", "profile-b", "{\"l1\":\"mappedLab\"}");
+    stubConceptMapWithHeader("DiseaseA", "pkg-a", "{\"d1\":\"mappedDisease\"}");
+    stubConceptMapWithHeader("DiseaseA", "pkg-b", "{}");
+    stubConceptMapWithHeader("LabA", "pkg-a", "{}");
+    stubConceptMapWithHeader("LabA", "pkg-b", "{\"l1\":\"mappedLab\"}");
 
     codeMappingService.loadConceptMaps();
 
@@ -128,23 +128,23 @@ class CodeMappingServiceFhirCoreSplitIntegrationTest {
 
   @Test
   void shouldContinueWithNextHeaderWhenFirstHeaderFails() {
-    stubConceptMapWithHeaderAndStatus("DiseaseA", "profile-a", 500);
-    stubConceptMapWithHeader("DiseaseA", "profile-b", "{\"d1\":\"fromProfileB\"}");
-    stubConceptMapWithHeader("LabA", "profile-a", "{\"l1\":\"mappedLab\"}");
-    stubConceptMapWithHeader("LabA", "profile-b", "{}");
+    stubConceptMapWithHeaderAndStatus("DiseaseA", "pkg-a", 500);
+    stubConceptMapWithHeader("DiseaseA", "pkg-b", "{\"d1\":\"fromPkgB\"}");
+    stubConceptMapWithHeader("LabA", "pkg-a", "{\"l1\":\"mappedLab\"}");
+    stubConceptMapWithHeader("LabA", "pkg-b", "{}");
 
     codeMappingService.loadConceptMaps();
 
-    assertThat(codeMappingService.mapCode("d1")).isEqualTo("fromProfileB");
+    assertThat(codeMappingService.mapCode("d1")).isEqualTo("fromPkgB");
     assertThat(codeMappingService.mapCode("l1")).isEqualTo("mappedLab");
   }
 
   @Test
   void shouldSkipConceptMapWhenAllHeadersFail() {
-    stubConceptMapWithHeaderAndStatus("DiseaseA", "profile-a", 500);
-    stubConceptMapWithHeaderAndStatus("DiseaseA", "profile-b", 500);
-    stubConceptMapWithHeader("LabA", "profile-a", "{\"l1\":\"mappedLab\"}");
-    stubConceptMapWithHeader("LabA", "profile-b", "{}");
+    stubConceptMapWithHeaderAndStatus("DiseaseA", "pkg-a", 500);
+    stubConceptMapWithHeaderAndStatus("DiseaseA", "pkg-b", 500);
+    stubConceptMapWithHeader("LabA", "pkg-a", "{\"l1\":\"mappedLab\"}");
+    stubConceptMapWithHeader("LabA", "pkg-b", "{}");
 
     codeMappingService.loadConceptMaps();
 
@@ -154,10 +154,10 @@ class CodeMappingServiceFhirCoreSplitIntegrationTest {
 
   @Test
   void shouldRaiseExceptionWhenAllConceptMapsFailWithAllHeaders() {
-    stubConceptMapWithHeaderAndStatus("DiseaseA", "profile-a", 500);
-    stubConceptMapWithHeaderAndStatus("DiseaseA", "profile-b", 500);
-    stubConceptMapWithHeaderAndStatus("LabA", "profile-a", 500);
-    stubConceptMapWithHeaderAndStatus("LabA", "profile-b", 500);
+    stubConceptMapWithHeaderAndStatus("DiseaseA", "pkg-a", 500);
+    stubConceptMapWithHeaderAndStatus("DiseaseA", "pkg-b", 500);
+    stubConceptMapWithHeaderAndStatus("LabA", "pkg-a", 500);
+    stubConceptMapWithHeaderAndStatus("LabA", "pkg-b", 500);
 
     codeMappingService.loadConceptMaps();
 
@@ -168,10 +168,10 @@ class CodeMappingServiceFhirCoreSplitIntegrationTest {
 
   @Test
   void shouldRaiseExceptionWhenAllConceptMapsReturnEmptyWithAllHeaders() {
-    stubConceptMapWithHeader("DiseaseA", "profile-a", "{}");
-    stubConceptMapWithHeader("DiseaseA", "profile-b", "{}");
-    stubConceptMapWithHeader("LabA", "profile-a", "{}");
-    stubConceptMapWithHeader("LabA", "profile-b", "{}");
+    stubConceptMapWithHeader("DiseaseA", "pkg-a", "{}");
+    stubConceptMapWithHeader("DiseaseA", "pkg-b", "{}");
+    stubConceptMapWithHeader("LabA", "pkg-a", "{}");
+    stubConceptMapWithHeader("LabA", "pkg-b", "{}");
 
     codeMappingService.loadConceptMaps();
 
@@ -182,10 +182,10 @@ class CodeMappingServiceFhirCoreSplitIntegrationTest {
 
   @Test
   void shouldKeepFirstValueOnDuplicateKeyAcrossHeaders() {
-    stubConceptMapWithHeader("DiseaseA", "profile-a", "{\"d1\":\"first\"}");
-    stubConceptMapWithHeader("DiseaseA", "profile-b", "{\"d1\":\"second\"}");
-    stubConceptMapWithHeader("LabA", "profile-a", "{}");
-    stubConceptMapWithHeader("LabA", "profile-b", "{}");
+    stubConceptMapWithHeader("DiseaseA", "pkg-a", "{\"d1\":\"first\"}");
+    stubConceptMapWithHeader("DiseaseA", "pkg-b", "{\"d1\":\"second\"}");
+    stubConceptMapWithHeader("LabA", "pkg-a", "{}");
+    stubConceptMapWithHeader("LabA", "pkg-b", "{}");
 
     codeMappingService.loadConceptMaps();
 
@@ -196,7 +196,7 @@ class CodeMappingServiceFhirCoreSplitIntegrationTest {
       final String name, final String headerValue, final String body) {
     stubFor(
         get(urlEqualTo("/conceptmap/" + name))
-            .withHeader("x-fhir-profile", equalTo(headerValue))
+            .withHeader("x-fhir-package", equalTo(headerValue))
             .willReturn(
                 aResponse()
                     .withStatus(200)
@@ -208,7 +208,7 @@ class CodeMappingServiceFhirCoreSplitIntegrationTest {
       final String name, final String headerValue, final int status) {
     stubFor(
         get(urlEqualTo("/conceptmap/" + name))
-            .withHeader("x-fhir-profile", equalTo(headerValue))
+            .withHeader("x-fhir-package", equalTo(headerValue))
             .willReturn(aResponse().withStatus(status)));
   }
 }

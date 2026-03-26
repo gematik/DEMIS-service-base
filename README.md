@@ -65,7 +65,7 @@ If a concept map cannot be loaded (e.g., due to network issues or missing maps),
 
 #### FHIR Core Split
 
-When the FHIR snapshots are split across multiple service instances (routed via the `x-fhir-profile` header), enable the feature flag and configure the profile headers:
+When the FHIR snapshots are split across multiple service instances (routed via the `x-fhir-package` header), enable the feature flag and configure the profile headers:
 
 ```yaml
 feature:
@@ -84,12 +84,12 @@ demis:
     concept-maps:
       - NotificationDiseaseCategoryToTransmissionCategory
       - NotificationCategoryToTransmissionCategory
-    fhir-profile-headers:
-      - fhir-profile-snapshots-a
-      - fhir-profile-snapshots-b
+    fhir-package-headers:
+      - fhir-package-a
+      - fhir-package-b
 ```
 
-When `feature.flag.fhir.core.split=true`, the `CodeMappingService` iterates through all configured `fhir-profile-headers` for each concept map, passing them as the `x-fhir-profile` request header. Results from all successful calls are merged. An error for a concept map is only logged when **all** configured headers fail for that concept map.
+When `feature.flag.fhir.core.split=true`, the `CodeMappingService` iterates through all configured `fhir-package-headers` for each concept map, passing them as the `x-fhir-package` request header. Results from all successful calls are merged. An error for a concept map is only logged when **all** configured headers fail for that concept map.
 
 ## How DEMIS code mapping works
 
@@ -99,7 +99,7 @@ The DEMIS code mapping feature provides a way to resolve input codes (for exampl
 
 - `CodeMappingClient`
   - A Spring Cloud OpenFeign client that calls the external Code Mapping Service.
-  - Exposes a single operation `getConceptMap(String name, String fhirProfile)` that returns a key/value map for a given concept map name, routing via the `x-fhir-profile` header.
+  - Exposes a single operation `getConceptMap(String name, String fhirPackage)` that returns a key/value map for a given concept map name, routing via the `x-fhir-package` header.
 
 - `CodeMappingService`
   - Main entry point for application code.
@@ -161,11 +161,11 @@ The following properties control DEMIS code mapping (see `CodeMappingProperties`
 - `demis.codemapping.concept-maps` (List<String>)
   - Names of the concept maps to load and merge into the cache.
 
-- `demis.codemapping.fhir-profile-headers` (List<String>)
-  - List of `x-fhir-profile` header values used when `feature.flag.fhir.core.split=true`. Each header is used to fetch concept maps from the corresponding FHIR profile instance.
+- `demis.codemapping.fhir-package-headers` (List<String>)
+  - List of `x-fhir-package` header values used when `feature.flag.fhir.core.split=true`. Each header is used to fetch concept maps from the corresponding FHIR profile instance.
 
 - `feature.flag.fhir.core.split` (boolean)
-  - Enables or disables the FHIR core split feature. When enabled, the service uses the configured `fhir-profile-headers` to route requests to specific FHIR profile instances.
+  - Enables or disables the FHIR core split feature. When enabled, the service uses the configured `fhir-package-headers` to route requests to specific FHIR profile instances.
 
 ## Security Policy
 If you want to see the security policy, please check our [SECURITY.md](.github/SECURITY.md).

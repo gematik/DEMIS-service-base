@@ -146,7 +146,14 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 public final class HeadersForwardingRequestInterceptor implements RequestInterceptor {
 
   public static final Set<String> DEFAULT_HEADERS_TO_FORWARD =
-      Set.of("x-fhir-api-version", "x-fhir-profile", "x-fhir-profile-version");
+      Set.of(
+          "x-fhir-api-version",
+          "x-fhir-profile",
+          "x-fhir-profile-version",
+          "x-fhir-package",
+          "x-fhir-package-version",
+          "x-api-version",
+          "x-fhir-api-submission-type");
 
   private final Set<String> headersToForward;
 
