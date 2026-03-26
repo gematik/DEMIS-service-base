@@ -54,11 +54,11 @@ import org.springframework.util.StringUtils;
  *   <li>In the constructor the {@link CodeMappingProperties} are validated. This ensures that base
  *       URL, context path, cron expression, and at least one concept map are configured. When the
  *       FHIR core split feature flag ({@code feature.flag.fhir.core.split}) is enabled, at least
- *       one FHIR profile header must also be configured.
+ *       one {@code x-fhir-package} header must also be configured.
  *   <li>The list of all concept maps to load is taken from the properties and stored in {@link
  *       #allConceptMaps}.
- *   <li>If the FHIR core split feature flag is enabled, the list of FHIR profile headers is taken
- *       from the properties and stored in {@link #fhirProfileHeaders}.
+ *   <li>The list of {@code x-fhir-package} header values is taken from the properties and stored in
+ *       {@link #fhirPackageHeaders}.
  *   <li>Using the {@link ReloadableCacheFactory} a {@link ReloadableCache} instance is created with
  *       a {@link java.util.function.Supplier}. This supplier points to {@link
  *       #loadConceptMaps(java.util.List)} and defines how the cache obtains and refreshes its data.
@@ -86,16 +86,16 @@ import org.springframework.util.StringUtils;
  *
  * <ol>
  *   <li>{@link #loadConceptMaps(java.util.List)} iterates over all configured concept map names.
- *   <li><b>Default mode (FHIR core split disabled):</b> For each concept map the service first
- *       attempts to call {@link CodeMappingClient#getConceptMapWithHeader(String, String)} with the
- *       default header value {@value #DEFAULT_FHIR_PROFILE}. If this call results in an HTTP 403
- *       (e.g. because the Istio routing rules have not yet been updated for the new header), the
- *       service falls back to {@link CodeMappingClient#getConceptMap(String)} which sends no {@code
- *       x-fhir-profile} header. This fallback ensures backward compatibility during the transition
- *       period.
+ *   <li><b>Default mode (FHIR core split disabled):</b> For each concept map the service calls
+ *       {@link CodeMappingClient#getConceptMapWithPackageHeader(String, String)} using the first
+ *       configured {@code x-fhir-package} header value, or the constant {@value
+ *       #DEFAULT_FHIR_PACKAGE} when no package headers are configured. If the call results in an
+ *       HTTP 403 the service falls back to {@link CodeMappingClient#getConceptMap(String)} which
+ *       sends no routing header. This fallback ensures backward compatibility during the Istio
+ *       routing transition.
  *   <li><b>FHIR core split mode (feature flag enabled):</b> For each concept map, the service
- *       iterates through all configured {@code x-fhir-profile} header values and calls {@link
- *       CodeMappingClient#getConceptMapWithHeader(String, String)} for each header. Results from
+ *       iterates through all configured {@code x-fhir-package} header values and calls {@link
+ *       CodeMappingClient#getConceptMapWithPackageHeader(String, String)} for each. Results from
  *       all successful calls are merged into the cache. Only if none of the headers returns data
  *       for a given concept map, an error is logged for that concept map.
  *   <li>All concept maps are merged into a single {@link java.util.LinkedHashMap}. If a duplicate
@@ -147,13 +147,13 @@ import org.springframework.util.StringUtils;
 @ConditionalOnProperty(name = "demis.codemapping.enabled", havingValue = "true")
 public class CodeMappingService {
 
-  static final String DEFAULT_FHIR_PROFILE = "fhir-profile-snapshots";
+  static final String DEFAULT_FHIR_PACKAGE = "fhir-profile-snapshots";
 
   private final CodeMappingClient codeMappingClient;
   private final List<String> allConceptMaps;
   private final ReloadableCache<String, String> cache;
   private final boolean fhirCoreSplitEnabled;
-  private final List<String> fhirProfileHeaders;
+  private final List<String> fhirPackageHeaders;
 
   public CodeMappingService(
       final CodeMappingClient codeMappingClient,
@@ -164,8 +164,7 @@ public class CodeMappingService {
     this.codeMappingClient = Objects.requireNonNull(codeMappingClient, "codeMappingClient");
     this.allConceptMaps = List.copyOf(properties.getConceptMaps());
     this.fhirCoreSplitEnabled = fhirCoreSplitEnabled;
-    this.fhirProfileHeaders =
-        fhirCoreSplitEnabled ? List.copyOf(properties.getFhirProfileHeaders()) : List.of();
+    this.fhirPackageHeaders = List.copyOf(properties.getFhirPackageHeaders());
     this.cache = cacheFactory.create("code-mapping", () -> loadConceptMaps(allConceptMaps));
   }
 
@@ -183,9 +182,9 @@ public class CodeMappingService {
     if (!StringUtils.hasText(properties.getCacheReloadCron())) {
       throw new IllegalStateException("Cache reload cron expression must be configured");
     }
-    if (fhirCoreSplitEnabled && properties.getFhirProfileHeaders().isEmpty()) {
+    if (fhirCoreSplitEnabled && properties.getFhirPackageHeaders().isEmpty()) {
       throw new IllegalStateException(
-          "At least one FHIR profile header must be configured when FHIR core split is enabled");
+          "At least one FHIR package header must be configured when FHIR core split is enabled");
     }
   }
 
@@ -229,13 +228,14 @@ public class CodeMappingService {
   private void loadConceptMapDefault(
       final String concept, final LinkedHashMap<String, String> merged) {
     try {
-      final var map = codeMappingClient.getConceptMapWithHeader(concept, DEFAULT_FHIR_PROFILE);
+      final var map =
+          codeMappingClient.getConceptMapWithPackageHeader(concept, DEFAULT_FHIR_PACKAGE);
       mergeMap(map, concept, merged);
     } catch (Exception e) {
       if (isForbidden(e)) {
         log.warn(
-            "Received 403 for concept map {} with header - falling back to legacy call without"
-                + " header",
+            "Received 403 for concept map {} with x-fhir-package header and default value - falling back to legacy"
+                + " call without header",
             concept);
         loadConceptMapLegacy(concept, merged);
       } else {
@@ -272,16 +272,17 @@ public class CodeMappingService {
   private void loadConceptMapWithHeaders(
       final String concept, final LinkedHashMap<String, String> merged) {
     boolean anySuccess = false;
-    for (final var header : fhirProfileHeaders) {
+    for (final var packageHeader : fhirPackageHeaders) {
       try {
-        final var map = codeMappingClient.getConceptMapWithHeader(concept, header);
+        final Map<String, String> map =
+            codeMappingClient.getConceptMapWithPackageHeader(concept, packageHeader);
         mergeMap(map, concept, merged);
         anySuccess = true;
       } catch (Exception e) {
         log.warn(
-            "Failed to load concept map: {} with header {} - trying next header",
+            "Failed to load concept map: {} with x-fhir-package header {} - trying next header",
             concept,
-            header,
+            packageHeader,
             e);
       }
     }

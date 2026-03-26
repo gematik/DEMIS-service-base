@@ -2,6 +2,9 @@
 
 # Release notes service-base
 
+## Release 2.14.1
+- renamed headers used for routing
+
 ## Release 2.14.0
 - extended rest exception handling with UnsupportedOperationException processing
 - services using the error handling can now return a HTTP 501 with a custom message for unsupported operations instead of a generic HTTP 500

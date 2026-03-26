@@ -27,7 +27,7 @@ package de.gematik.demis.service.base.clients.mapping;
  * #L%
  */
 
-import static de.gematik.demis.service.base.clients.mapping.CodeMappingService.DEFAULT_FHIR_PROFILE;
+import static de.gematik.demis.service.base.clients.mapping.CodeMappingService.DEFAULT_FHIR_PACKAGE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
@@ -65,9 +65,9 @@ class CodeMappingServiceTest {
 
   @Test
   void shouldLoadMappingsAndMapDiseaseCode() {
-    when(client.getConceptMapWithHeader("DiseaseA", DEFAULT_FHIR_PROFILE))
+    when(client.getConceptMapWithPackageHeader("DiseaseA", DEFAULT_FHIR_PACKAGE))
         .thenReturn(Map.of("d1", "mapped"));
-    when(client.getConceptMapWithHeader("LabA", DEFAULT_FHIR_PROFILE)).thenReturn(Map.of());
+    when(client.getConceptMapWithPackageHeader("LabA", DEFAULT_FHIR_PACKAGE)).thenReturn(Map.of());
 
     var service = new CodeMappingService(client, properties, cacheFactory, false);
     service.loadConceptMaps();
@@ -77,8 +77,9 @@ class CodeMappingServiceTest {
 
   @Test
   void shouldLoadMappingsAndMapLaboratoryCode() {
-    when(client.getConceptMapWithHeader("DiseaseA", DEFAULT_FHIR_PROFILE)).thenReturn(Map.of());
-    when(client.getConceptMapWithHeader("LabA", DEFAULT_FHIR_PROFILE))
+    when(client.getConceptMapWithPackageHeader("DiseaseA", DEFAULT_FHIR_PACKAGE))
+        .thenReturn(Map.of());
+    when(client.getConceptMapWithPackageHeader("LabA", DEFAULT_FHIR_PACKAGE))
         .thenReturn(Map.of("l1", "mappedLab"));
 
     var service = new CodeMappingService(client, properties, cacheFactory, false);
@@ -90,9 +91,9 @@ class CodeMappingServiceTest {
   @Test
   void shouldKeepFirstValueWhenDuplicateKeyAppears() {
     properties.setConceptMaps(List.of("DiseaseA", "DiseaseB"));
-    when(client.getConceptMapWithHeader("DiseaseA", DEFAULT_FHIR_PROFILE))
+    when(client.getConceptMapWithPackageHeader("DiseaseA", DEFAULT_FHIR_PACKAGE))
         .thenReturn(Map.of("d1", "first"));
-    when(client.getConceptMapWithHeader("DiseaseB", DEFAULT_FHIR_PROFILE))
+    when(client.getConceptMapWithPackageHeader("DiseaseB", DEFAULT_FHIR_PACKAGE))
         .thenReturn(Map.of("d1", "second"));
 
     var service = new CodeMappingService(client, properties, cacheFactory, false);
@@ -103,8 +104,9 @@ class CodeMappingServiceTest {
 
   @Test
   void shouldThrowWhenCacheEmpty() {
-    when(client.getConceptMapWithHeader("DiseaseA", DEFAULT_FHIR_PROFILE)).thenReturn(Map.of());
-    when(client.getConceptMapWithHeader("LabA", DEFAULT_FHIR_PROFILE)).thenReturn(Map.of());
+    when(client.getConceptMapWithPackageHeader("DiseaseA", DEFAULT_FHIR_PACKAGE))
+        .thenReturn(Map.of());
+    when(client.getConceptMapWithPackageHeader("LabA", DEFAULT_FHIR_PACKAGE)).thenReturn(Map.of());
 
     var service = new CodeMappingService(client, properties, cacheFactory, false);
     service.loadConceptMaps();
@@ -117,11 +119,11 @@ class CodeMappingServiceTest {
   @Test
   void shouldHandleMissingConceptMapGracefully() {
     properties.setConceptMaps(List.of("DiseaseA", "MissingMap", "LabA"));
-    when(client.getConceptMapWithHeader("DiseaseA", DEFAULT_FHIR_PROFILE))
+    when(client.getConceptMapWithPackageHeader("DiseaseA", DEFAULT_FHIR_PACKAGE))
         .thenReturn(Map.of("d1", "mappedDisease"));
-    when(client.getConceptMapWithHeader("MissingMap", DEFAULT_FHIR_PROFILE))
+    when(client.getConceptMapWithPackageHeader("MissingMap", DEFAULT_FHIR_PACKAGE))
         .thenThrow(new RuntimeException("404 Not Found"));
-    when(client.getConceptMapWithHeader("LabA", DEFAULT_FHIR_PROFILE))
+    when(client.getConceptMapWithPackageHeader("LabA", DEFAULT_FHIR_PACKAGE))
         .thenReturn(Map.of("l1", "mappedLab"));
 
     var service = new CodeMappingService(client, properties, cacheFactory, false);
@@ -168,16 +170,16 @@ class CodeMappingServiceTest {
     }
 
     @Test
-    void shouldRequireFhirProfileHeadersWhenFhirCoreSplitEnabled() {
-      properties.setFhirProfileHeaders(List.of());
+    void shouldRequirePackageHeadersWhenFhirCoreSplitEnabled() {
+      properties.setFhirPackageHeaders(List.of());
       assertThatThrownBy(() -> new CodeMappingService(client, properties, cacheFactory, true))
           .isInstanceOf(IllegalStateException.class)
-          .hasMessageContaining("FHIR profile header");
+          .hasMessageContaining("FHIR package header");
     }
 
     @Test
-    void shouldNotRequireFhirProfileHeadersWhenFhirCoreSplitDisabled() {
-      properties.setFhirProfileHeaders(List.of());
+    void shouldNotRequirePackageHeadersWhenFhirCoreSplitDisabled() {
+      properties.setFhirPackageHeaders(List.of());
       // Should not throw when fhirCoreSplitEnabled is false
       var service = new CodeMappingService(client, properties, cacheFactory, false);
       assertThat(service).isNotNull();
@@ -192,10 +194,10 @@ class CodeMappingServiceTest {
 
       @Test
       void shouldFallBackToLegacyCallOn403() {
-        when(client.getConceptMapWithHeader("DiseaseA", DEFAULT_FHIR_PROFILE))
+        when(client.getConceptMapWithPackageHeader("DiseaseA", DEFAULT_FHIR_PACKAGE))
             .thenThrow(feignException(403));
         when(client.getConceptMap("DiseaseA")).thenReturn(Map.of("d1", "fallback"));
-        when(client.getConceptMapWithHeader("LabA", DEFAULT_FHIR_PROFILE))
+        when(client.getConceptMapWithPackageHeader("LabA", DEFAULT_FHIR_PACKAGE))
             .thenReturn(Map.of("l1", "mappedLab"));
 
         var service = new CodeMappingService(client, properties, cacheFactory, false);
@@ -209,10 +211,10 @@ class CodeMappingServiceTest {
 
       @Test
       void shouldSkipConceptMapWhenFallbackAlsoFails() {
-        when(client.getConceptMapWithHeader("DiseaseA", DEFAULT_FHIR_PROFILE))
+        when(client.getConceptMapWithPackageHeader("DiseaseA", DEFAULT_FHIR_PACKAGE))
             .thenThrow(feignException(403));
         when(client.getConceptMap("DiseaseA")).thenThrow(new RuntimeException("fallback failed"));
-        when(client.getConceptMapWithHeader("LabA", DEFAULT_FHIR_PROFILE))
+        when(client.getConceptMapWithPackageHeader("LabA", DEFAULT_FHIR_PACKAGE))
             .thenReturn(Map.of("l1", "mappedLab"));
 
         var service = new CodeMappingService(client, properties, cacheFactory, false);
@@ -224,9 +226,9 @@ class CodeMappingServiceTest {
 
       @Test
       void shouldNotFallBackOnNon403Errors() {
-        when(client.getConceptMapWithHeader("DiseaseA", DEFAULT_FHIR_PROFILE))
+        when(client.getConceptMapWithPackageHeader("DiseaseA", DEFAULT_FHIR_PACKAGE))
             .thenThrow(feignException(500));
-        when(client.getConceptMapWithHeader("LabA", DEFAULT_FHIR_PROFILE))
+        when(client.getConceptMapWithPackageHeader("LabA", DEFAULT_FHIR_PACKAGE))
             .thenReturn(Map.of("l1", "mappedLab"));
 
         var service = new CodeMappingService(client, properties, cacheFactory, false);
@@ -238,10 +240,10 @@ class CodeMappingServiceTest {
 
       @Test
       void shouldFallBackForAllConceptMapsIndependently() {
-        when(client.getConceptMapWithHeader("DiseaseA", DEFAULT_FHIR_PROFILE))
+        when(client.getConceptMapWithPackageHeader("DiseaseA", DEFAULT_FHIR_PACKAGE))
             .thenThrow(feignException(403));
         when(client.getConceptMap("DiseaseA")).thenReturn(Map.of("d1", "fallbackDisease"));
-        when(client.getConceptMapWithHeader("LabA", DEFAULT_FHIR_PROFILE))
+        when(client.getConceptMapWithPackageHeader("LabA", DEFAULT_FHIR_PACKAGE))
             .thenThrow(feignException(403));
         when(client.getConceptMap("LabA")).thenReturn(Map.of("l1", "fallbackLab"));
 
@@ -261,7 +263,7 @@ class CodeMappingServiceTest {
                 null,
                 new RequestTemplate());
         return FeignException.errorStatus(
-            "CodeMappingClient#getConceptMapWithHeader(String,String)",
+            "CodeMappingClient#getConceptMapWithPackageHeader(String,String)",
             feign.Response.builder()
                 .status(httpStatus)
                 .reason("RBAC: access denied")
@@ -276,10 +278,10 @@ class CodeMappingServiceTest {
 
       @Test
       void shouldFallBackToLegacyCallOn403() {
-        when(client.getConceptMapWithHeader("DiseaseA", DEFAULT_FHIR_PROFILE))
+        when(client.getConceptMapWithPackageHeader("DiseaseA", DEFAULT_FHIR_PACKAGE))
             .thenThrow(serviceCallException(403));
         when(client.getConceptMap("DiseaseA")).thenReturn(Map.of("d1", "fallback"));
-        when(client.getConceptMapWithHeader("LabA", DEFAULT_FHIR_PROFILE))
+        when(client.getConceptMapWithPackageHeader("LabA", DEFAULT_FHIR_PACKAGE))
             .thenReturn(Map.of("l1", "mappedLab"));
 
         var service = new CodeMappingService(client, properties, cacheFactory, false);
@@ -293,10 +295,10 @@ class CodeMappingServiceTest {
 
       @Test
       void shouldSkipConceptMapWhenFallbackAlsoFails() {
-        when(client.getConceptMapWithHeader("DiseaseA", DEFAULT_FHIR_PROFILE))
+        when(client.getConceptMapWithPackageHeader("DiseaseA", DEFAULT_FHIR_PACKAGE))
             .thenThrow(serviceCallException(403));
         when(client.getConceptMap("DiseaseA")).thenThrow(new RuntimeException("fallback failed"));
-        when(client.getConceptMapWithHeader("LabA", DEFAULT_FHIR_PROFILE))
+        when(client.getConceptMapWithPackageHeader("LabA", DEFAULT_FHIR_PACKAGE))
             .thenReturn(Map.of("l1", "mappedLab"));
 
         var service = new CodeMappingService(client, properties, cacheFactory, false);
@@ -308,9 +310,9 @@ class CodeMappingServiceTest {
 
       @Test
       void shouldNotFallBackOnNon403Errors() {
-        when(client.getConceptMapWithHeader("DiseaseA", DEFAULT_FHIR_PROFILE))
+        when(client.getConceptMapWithPackageHeader("DiseaseA", DEFAULT_FHIR_PACKAGE))
             .thenThrow(serviceCallException(500));
-        when(client.getConceptMapWithHeader("LabA", DEFAULT_FHIR_PROFILE))
+        when(client.getConceptMapWithPackageHeader("LabA", DEFAULT_FHIR_PACKAGE))
             .thenReturn(Map.of("l1", "mappedLab"));
 
         var service = new CodeMappingService(client, properties, cacheFactory, false);
@@ -322,10 +324,10 @@ class CodeMappingServiceTest {
 
       @Test
       void shouldFallBackForAllConceptMapsIndependently() {
-        when(client.getConceptMapWithHeader("DiseaseA", DEFAULT_FHIR_PROFILE))
+        when(client.getConceptMapWithPackageHeader("DiseaseA", DEFAULT_FHIR_PACKAGE))
             .thenThrow(serviceCallException(403));
         when(client.getConceptMap("DiseaseA")).thenReturn(Map.of("d1", "fallbackDisease"));
-        when(client.getConceptMapWithHeader("LabA", DEFAULT_FHIR_PROFILE))
+        when(client.getConceptMapWithPackageHeader("LabA", DEFAULT_FHIR_PACKAGE))
             .thenThrow(serviceCallException(403));
         when(client.getConceptMap("LabA")).thenReturn(Map.of("l1", "fallbackLab"));
 
@@ -348,17 +350,17 @@ class CodeMappingServiceTest {
 
     @BeforeEach
     void setUpHeaders() {
-      properties.setFhirProfileHeaders(List.of("profile-a", "profile-b"));
+      properties.setFhirPackageHeaders(List.of("pkg-a", "pkg-b"));
     }
 
     @Test
-    void shouldLoadMappingsUsingAllHeaders() {
-      when(client.getConceptMapWithHeader("DiseaseA", "profile-a"))
+    void shouldLoadMappingsUsingAllPackageHeaders() {
+      when(client.getConceptMapWithPackageHeader("DiseaseA", "pkg-a"))
           .thenReturn(Map.of("d1", "mappedA"));
-      when(client.getConceptMapWithHeader("DiseaseA", "profile-b"))
+      when(client.getConceptMapWithPackageHeader("DiseaseA", "pkg-b"))
           .thenReturn(Map.of("d2", "mappedB"));
-      when(client.getConceptMapWithHeader("LabA", "profile-a")).thenReturn(Map.of("l1", "labA"));
-      when(client.getConceptMapWithHeader("LabA", "profile-b")).thenReturn(Map.of("l2", "labB"));
+      when(client.getConceptMapWithPackageHeader("LabA", "pkg-a")).thenReturn(Map.of("l1", "labA"));
+      when(client.getConceptMapWithPackageHeader("LabA", "pkg-b")).thenReturn(Map.of("l2", "labB"));
 
       var service = new CodeMappingService(client, properties, cacheFactory, true);
       service.loadConceptMaps();
@@ -371,27 +373,27 @@ class CodeMappingServiceTest {
 
     @Test
     void shouldUseConfiguredHeadersNotDefault() {
-      when(client.getConceptMapWithHeader("DiseaseA", "profile-a"))
+      when(client.getConceptMapWithPackageHeader("DiseaseA", "pkg-a"))
           .thenReturn(Map.of("d1", "mapped"));
-      when(client.getConceptMapWithHeader("DiseaseA", "profile-b")).thenReturn(Map.of());
-      when(client.getConceptMapWithHeader("LabA", "profile-a")).thenReturn(Map.of());
-      when(client.getConceptMapWithHeader("LabA", "profile-b")).thenReturn(Map.of());
+      when(client.getConceptMapWithPackageHeader("DiseaseA", "pkg-b")).thenReturn(Map.of());
+      when(client.getConceptMapWithPackageHeader("LabA", "pkg-a")).thenReturn(Map.of());
+      when(client.getConceptMapWithPackageHeader("LabA", "pkg-b")).thenReturn(Map.of());
 
       var service = new CodeMappingService(client, properties, cacheFactory, true);
       service.loadConceptMaps();
 
-      verify(client, never()).getConceptMapWithHeader("DiseaseA", DEFAULT_FHIR_PROFILE);
-      verify(client, never()).getConceptMapWithHeader("LabA", DEFAULT_FHIR_PROFILE);
+      verify(client, never()).getConceptMapWithPackageHeader("DiseaseA", DEFAULT_FHIR_PACKAGE);
+      verify(client, never()).getConceptMapWithPackageHeader("LabA", DEFAULT_FHIR_PACKAGE);
     }
 
     @Test
     void shouldKeepFirstValueOnDuplicateKeyAcrossHeaders() {
-      when(client.getConceptMapWithHeader("DiseaseA", "profile-a"))
+      when(client.getConceptMapWithPackageHeader("DiseaseA", "pkg-a"))
           .thenReturn(Map.of("d1", "first"));
-      when(client.getConceptMapWithHeader("DiseaseA", "profile-b"))
+      when(client.getConceptMapWithPackageHeader("DiseaseA", "pkg-b"))
           .thenReturn(Map.of("d1", "second"));
-      when(client.getConceptMapWithHeader("LabA", "profile-a")).thenReturn(Map.of());
-      when(client.getConceptMapWithHeader("LabA", "profile-b")).thenReturn(Map.of());
+      when(client.getConceptMapWithPackageHeader("LabA", "pkg-a")).thenReturn(Map.of());
+      when(client.getConceptMapWithPackageHeader("LabA", "pkg-b")).thenReturn(Map.of());
 
       var service = new CodeMappingService(client, properties, cacheFactory, true);
       service.loadConceptMaps();
@@ -401,13 +403,13 @@ class CodeMappingServiceTest {
 
     @Test
     void shouldContinueWithNextHeaderOnFailure() {
-      when(client.getConceptMapWithHeader("DiseaseA", "profile-a"))
+      when(client.getConceptMapWithPackageHeader("DiseaseA", "pkg-a"))
           .thenThrow(new RuntimeException("connection refused"));
-      when(client.getConceptMapWithHeader("DiseaseA", "profile-b"))
+      when(client.getConceptMapWithPackageHeader("DiseaseA", "pkg-b"))
           .thenReturn(Map.of("d1", "mapped"));
-      when(client.getConceptMapWithHeader("LabA", "profile-a"))
+      when(client.getConceptMapWithPackageHeader("LabA", "pkg-a"))
           .thenReturn(Map.of("l1", "labMapped"));
-      when(client.getConceptMapWithHeader("LabA", "profile-b")).thenReturn(Map.of());
+      when(client.getConceptMapWithPackageHeader("LabA", "pkg-b")).thenReturn(Map.of());
 
       var service = new CodeMappingService(client, properties, cacheFactory, true);
       service.loadConceptMaps();
@@ -418,30 +420,29 @@ class CodeMappingServiceTest {
 
     @Test
     void shouldSkipConceptMapWhenAllHeadersFail() {
-      when(client.getConceptMapWithHeader("DiseaseA", "profile-a"))
+      when(client.getConceptMapWithPackageHeader("DiseaseA", "pkg-a"))
           .thenThrow(new RuntimeException("error"));
-      when(client.getConceptMapWithHeader("DiseaseA", "profile-b"))
+      when(client.getConceptMapWithPackageHeader("DiseaseA", "pkg-b"))
           .thenThrow(new RuntimeException("error"));
-      when(client.getConceptMapWithHeader("LabA", "profile-a"))
+      when(client.getConceptMapWithPackageHeader("LabA", "pkg-a"))
           .thenReturn(Map.of("l1", "labMapped"));
-      when(client.getConceptMapWithHeader("LabA", "profile-b")).thenReturn(Map.of());
+      when(client.getConceptMapWithPackageHeader("LabA", "pkg-b")).thenReturn(Map.of());
 
       var service = new CodeMappingService(client, properties, cacheFactory, true);
       service.loadConceptMaps();
 
-      // LabA still loaded even though DiseaseA failed with all headers
       assertThat(service.mapCode("l1")).isEqualTo("labMapped");
     }
 
     @Test
     void shouldThrowWhenAllConceptMapsFailWithAllHeaders() {
-      when(client.getConceptMapWithHeader("DiseaseA", "profile-a"))
+      when(client.getConceptMapWithPackageHeader("DiseaseA", "pkg-a"))
           .thenThrow(new RuntimeException("error"));
-      when(client.getConceptMapWithHeader("DiseaseA", "profile-b"))
+      when(client.getConceptMapWithPackageHeader("DiseaseA", "pkg-b"))
           .thenThrow(new RuntimeException("error"));
-      when(client.getConceptMapWithHeader("LabA", "profile-a"))
+      when(client.getConceptMapWithPackageHeader("LabA", "pkg-a"))
           .thenThrow(new RuntimeException("error"));
-      when(client.getConceptMapWithHeader("LabA", "profile-b"))
+      when(client.getConceptMapWithPackageHeader("LabA", "pkg-b"))
           .thenThrow(new RuntimeException("error"));
 
       var service = new CodeMappingService(client, properties, cacheFactory, true);
@@ -454,12 +455,12 @@ class CodeMappingServiceTest {
 
     @Test
     void shouldMergeResultsFromMultipleHeadersForSameConceptMap() {
-      when(client.getConceptMapWithHeader("DiseaseA", "profile-a"))
+      when(client.getConceptMapWithPackageHeader("DiseaseA", "pkg-a"))
           .thenReturn(Map.of("d1", "disease1"));
-      when(client.getConceptMapWithHeader("DiseaseA", "profile-b"))
+      when(client.getConceptMapWithPackageHeader("DiseaseA", "pkg-b"))
           .thenReturn(Map.of("d2", "disease2"));
-      when(client.getConceptMapWithHeader("LabA", "profile-a")).thenReturn(Map.of());
-      when(client.getConceptMapWithHeader("LabA", "profile-b")).thenReturn(Map.of());
+      when(client.getConceptMapWithPackageHeader("LabA", "pkg-a")).thenReturn(Map.of());
+      when(client.getConceptMapWithPackageHeader("LabA", "pkg-b")).thenReturn(Map.of());
 
       var service = new CodeMappingService(client, properties, cacheFactory, true);
       service.loadConceptMaps();

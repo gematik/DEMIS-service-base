@@ -44,9 +44,10 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  *   <li>{@code client.baseUrl} / {@code client.contextPath} – connection settings for the remote
  *       service.
  *   <li>{@code conceptMaps} – names of the concept maps to load.
- *   <li>{@code fhirProfileHeaders} – list of {@code x-fhir-profile} header values used when the
- *       FHIR core split feature flag is enabled. the headers are used to reach different futs
- *       instances which offer different snapshots
+ *   <li>{@code fhirPackageHeaders} – list of {@code x-fhir-package} header values used to route
+ *       requests to the Code Mapping Service. In FHIR core split mode at least one value must be
+ *       configured; in default mode the first value is used (falls back to {@code
+ *       DEFAULT_FHIR_PACKAGE} when the list is empty).
  * </ul>
  */
 @Getter
@@ -61,7 +62,7 @@ public class CodeMappingProperties {
 
   private final List<String> conceptMaps = new ArrayList<>();
 
-  private final List<String> fhirProfileHeaders = new ArrayList<>();
+  private final List<String> fhirPackageHeaders = new ArrayList<>();
 
   // Sets the list of concept maps, clearing any existing entries before adding new ones.
   public void setConceptMaps(final List<String> conceptMaps) {
@@ -71,11 +72,11 @@ public class CodeMappingProperties {
     }
   }
 
-  // Sets the list of FHIR profile headers, clearing any existing entries before adding new ones.
-  public void setFhirProfileHeaders(final List<String> fhirProfileHeaders) {
-    this.fhirProfileHeaders.clear();
-    if (fhirProfileHeaders != null) {
-      this.fhirProfileHeaders.addAll(fhirProfileHeaders);
+  // Sets the list of FHIR package headers, clearing any existing entries before adding new ones.
+  public void setFhirPackageHeaders(final List<String> fhirPackageHeaders) {
+    this.fhirPackageHeaders.clear();
+    if (fhirPackageHeaders != null) {
+      this.fhirPackageHeaders.addAll(fhirPackageHeaders);
     }
   }
 

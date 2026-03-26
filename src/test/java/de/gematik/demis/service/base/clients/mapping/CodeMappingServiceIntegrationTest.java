@@ -111,8 +111,8 @@ class CodeMappingServiceIntegrationTest {
 
     verify(
         getRequestedFor(urlEqualTo("/conceptmap/DiseaseA"))
-            .withHeader("x-fhir-profile", equalTo("fhir-profile-snapshots")));
-    verify(getRequestedFor(urlEqualTo("/conceptmap/DiseaseA")).withoutHeader("x-fhir-profile"));
+            .withHeader("x-fhir-package", equalTo("fhir-profile-snapshots")));
+    verify(getRequestedFor(urlEqualTo("/conceptmap/DiseaseA")).withoutHeader("x-fhir-package"));
   }
 
   @Test
@@ -130,7 +130,7 @@ class CodeMappingServiceIntegrationTest {
   private void stubConceptMapWithHeader(final String name, final String body) {
     stubFor(
         get(urlEqualTo("/conceptmap/" + name))
-            .withHeader("x-fhir-profile", equalTo("fhir-profile-snapshots"))
+            .withHeader("x-fhir-package", equalTo("fhir-profile-snapshots"))
             .willReturn(
                 aResponse()
                     .withStatus(200)
@@ -141,14 +141,14 @@ class CodeMappingServiceIntegrationTest {
   private void stubConceptMapWithHeaderReturns403(final String name) {
     stubFor(
         get(urlEqualTo("/conceptmap/" + name))
-            .withHeader("x-fhir-profile", equalTo("fhir-profile-snapshots"))
+            .withHeader("x-fhir-package", equalTo("fhir-profile-snapshots"))
             .willReturn(aResponse().withStatus(403).withBody("RBAC: access denied")));
   }
 
   private void stubConceptMapWithoutHeader(final String name, final String body) {
     stubFor(
         get(urlEqualTo("/conceptmap/" + name))
-            .withHeader("x-fhir-profile", absent())
+            .withHeader("x-fhir-package", absent())
             .willReturn(
                 aResponse()
                     .withStatus(200)
