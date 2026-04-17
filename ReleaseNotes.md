@@ -2,6 +2,10 @@
 
 # Release notes service-base
 
+## Release 2.15.0
+- added ReleaseNotes check to pipelines
+- new cryptography services for hash and aes de/encryption
+
 ## Release 2.14.1
 - renamed headers used for routing
 

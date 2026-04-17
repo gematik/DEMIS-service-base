@@ -101,8 +101,8 @@ This project includes:
   JUnit Platform Engine API under Eclipse Public License v2.0
   LatencyUtils under Public Domain, per Creative Commons CC0
   Log4j API to SLF4J Adapter under Apache-2.0
-  Logback Classic Module under Eclipse Public License - v 1.0 or GNU Lesser General Public License
-  Logback Core Module under Eclipse Public License - v 1.0 or GNU Lesser General Public License
+  Logback Classic Module under Eclipse Public License - v 2.0 or GNU Lesser General Public License
+  Logback Core Module under Eclipse Public License - v 2.0 or GNU Lesser General Public License
   Logstash Logback Encoder under Apache License, Version 2.0 or MIT License
   Maven Artifact under Apache-2.0
   Maven Artifact Resolver API under Apache-2.0
@@ -131,12 +131,12 @@ This project includes:
   OpenTelemetry Java under The Apache License, Version 2.0
   OpenTelemetry Semantic Conventions Java under The Apache License, Version 2.0
   org.apiguardian:apiguardian-api under The Apache License, Version 2.0
-  org.eclipse.sisu.inject under Eclipse Public License, Version 2.0
+  org.eclipse.sisu:org.eclipse.sisu.inject under Eclipse Public License, Version 2.0
   org.opentest4j:opentest4j under The Apache License, Version 2.0
   org.roaringbitmap:RoaringBitmap under Apache 2
   org.xmlunit:xmlunit-core under The Apache Software License, Version 2.0
   Plexus Common Utilities under Apache License, Version 2.0
-  Plexus Interpolation API under Apache License, Version 2.0
+  Plexus Interpolation API under Apache-2.0
   Project Lombok under The MIT License
   Protocol Buffers [Core] under BSD-3-Clause
   Saxon-HE under Mozilla Public License Version 2.0
