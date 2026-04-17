@@ -99,13 +99,9 @@ import org.springframework.web.context.request.ServletRequestAttributes;
  * <p>Example:
  *
  * <pre>{@code
- * @Configuration
- * class MyFeignClientConfiguration {
- *
- *     @Bean
- *     RequestInterceptor forwardingInterceptor() {
- *         return new HeadersForwardingRequestInterceptor(Set.of("x-custom-header"));
- *     }
+ * @Bean
+ * RequestInterceptor forwardingInterceptor() {
+ *     return new HeadersForwardingRequestInterceptor(Set.of("x-custom-header"));
  * }
  *
  * @FeignClient(
