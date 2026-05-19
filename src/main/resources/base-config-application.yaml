@@ -8,9 +8,10 @@ springdoc:
     writer-with-order-by-keys: true
 
 server:
-    error:
-        whitelabel:
-            enabled: false
+    web:
+        error:
+            whitelabel:
+                enabled: false
 
 management:
     info:

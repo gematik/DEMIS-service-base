@@ -45,10 +45,9 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.cloud.contract.wiremock.AutoConfigureWireMock;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.context.annotation.Bean;
@@ -57,6 +56,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.wiremock.spring.EnableWireMock;
 
 class FeignHeaderForwardingIntegrationTest {
 
@@ -67,7 +67,7 @@ class FeignHeaderForwardingIntegrationTest {
         "sample-client.url=http://localhost:${wiremock.server.port}",
         "base.feign.header.forwarding.enabled=true"
       })
-  @AutoConfigureWireMock(port = 0)
+  @EnableWireMock
   @AutoConfigureMockMvc
   @Nested
   class FeignHeaderForwardingEnabledWithDefaultHeaders {
@@ -131,7 +131,7 @@ class FeignHeaderForwardingIntegrationTest {
         "base.feign.header.forwarding.headers[0]=x-custom-1",
         "base.feign.header.forwarding.headers[1]=x-custom-2"
       })
-  @AutoConfigureWireMock(port = 0)
+  @EnableWireMock
   @AutoConfigureMockMvc
   @Nested
   class FeignHeaderForwardingEnabledWithCustomHeaders {
@@ -191,7 +191,7 @@ class FeignHeaderForwardingIntegrationTest {
         "sample-client.url=http://localhost:${wiremock.server.port}",
         "base.feign.header.forwarding.enabled=false"
       })
-  @AutoConfigureWireMock(port = 0)
+  @EnableWireMock
   @AutoConfigureMockMvc
   @Nested
   class FeignHeaderForwardingDisabled {
@@ -248,7 +248,7 @@ class FeignHeaderForwardingIntegrationTest {
         "base.feign.header.forwarding.enabled=true",
         "base.feign.header.forwarding.headers[0]=x-custom-1",
       })
-  @AutoConfigureWireMock(port = 0)
+  @EnableWireMock
   @Nested
   class HeaderForwardingInNonHttpContextTest {
 
@@ -305,7 +305,7 @@ class FeignHeaderForwardingIntegrationTest {
         "sample-client.url=http://localhost:${wiremock.server.port}",
         "base.feign.header.forwarding.enabled=false"
       })
-  @AutoConfigureWireMock(port = 0)
+  @EnableWireMock
   @AutoConfigureMockMvc
   @Nested
   class FeignHeaderForwardingWithAdditionalInterceptor {
@@ -387,7 +387,7 @@ class FeignHeaderForwardingIntegrationTest {
         "sample-client.url=http://localhost:${wiremock.server.port}",
         "base.feign.forwarding.enabled=false"
       })
-  @AutoConfigureWireMock(port = 0)
+  @EnableWireMock
   @AutoConfigureMockMvc
   @Nested
   class FeignHeaderForwardingForSelectedClientTest {

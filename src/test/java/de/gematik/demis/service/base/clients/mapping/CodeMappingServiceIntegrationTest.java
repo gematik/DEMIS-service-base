@@ -44,9 +44,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.cloud.contract.wiremock.AutoConfigureWireMock;
 import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.test.annotation.DirtiesContext;
+import org.wiremock.spring.EnableWireMock;
 
 @SpringBootTest(
     classes = CodeMappingServiceIntegrationTest.TestApplication.class,
@@ -59,7 +59,7 @@ import org.springframework.test.annotation.DirtiesContext;
       "demis.codemapping.concept-maps[1]=LabA",
       "feature.flag.fhir.core.split=false"
     })
-@AutoConfigureWireMock(port = 0)
+@EnableWireMock
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class CodeMappingServiceIntegrationTest {
 
