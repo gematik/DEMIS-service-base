@@ -5,7 +5,7 @@
 
     <groupId>de.gematik.demis</groupId>
     <artifactId>service-base</artifactId>
-    <version>2.15.0</version>
+    <version>3.0.0</version>
     <name>service-base</name>
     <description>library implementing some cross-cutting concerns like error handling for spring boot services</description>
     <url>https://github.com/gematik/DEMIS-service-base</url>
@@ -24,8 +24,8 @@
         <maven.compiler.target>25</maven.compiler.target>
 
         <java.version>25</java.version>
-        <spring-boot.version>3.5.13</spring-boot.version>
-        <spring-cloud.version>2025.0.1</spring-cloud.version>
+        <spring-boot.version>4.0.6</spring-boot.version>
+        <spring-cloud.version>2025.1.1</spring-cloud.version>
         <aspectj.version>1.9.25</aspectj.version>
         <springdoc.version>2.8.14</springdoc.version>
         <logstash-logback-encoder.version>9.0</logstash-logback-encoder.version>
@@ -61,8 +61,8 @@
             <optional>true</optional>
         </dependency>
         <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-aop</artifactId>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-aspectj</artifactId>
             <optional>true</optional>
         </dependency>
         <dependency>
@@ -91,18 +91,6 @@
             <optional>true</optional>
         </dependency>
         <dependency>
-            <groupId>org.aspectj</groupId>
-            <artifactId>aspectjrt</artifactId>
-            <version>${aspectj.version}</version>
-            <optional>true</optional>
-        </dependency>
-        <dependency>
-            <groupId>org.aspectj</groupId>
-            <artifactId>aspectjweaver</artifactId>
-            <version>${aspectj.version}</version>
-            <optional>true</optional>
-        </dependency>
-        <dependency>
             <groupId>de.gematik.demis</groupId>
             <artifactId>fhir-parser-library</artifactId>
             <version>${fhir.parser.version}</version>
@@ -117,32 +105,54 @@
         <!-- Test dependencies -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-properties-migrator</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-validation</artifactId>
+            <artifactId>spring-boot-starter-webmvc-test</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.springframework.cloud</groupId>
-            <artifactId>spring-cloud-contract-wiremock</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.micrometer</groupId>
-            <artifactId>micrometer-observation-test</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.micrometer</groupId>
-            <artifactId>micrometer-tracing-bridge-otel</artifactId>
+            <groupId>org.wiremock.integrations</groupId>
+            <artifactId>wiremock-spring-boot</artifactId>
+            <version>4.0.9</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-actuator</artifactId>
+            <artifactId>spring-boot-starter-micrometer-metrics</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-opentelemetry</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>io.micrometer</groupId>
+                    <artifactId>micrometer-registry-otlp</artifactId>
+                </exclusion>
+            </exclusions>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-micrometer-metrics-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-micrometer-tracing-test</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

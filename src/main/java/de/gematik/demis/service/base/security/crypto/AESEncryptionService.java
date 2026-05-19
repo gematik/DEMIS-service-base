@@ -83,7 +83,9 @@ public class AESEncryptionService {
   public AESEncryptionService(final byte[] secret, final byte[] fallbackDecryptionSecret) {
     validateSecret(secret);
     secretKeySpec = new SecretKeySpec(secret, AES);
-    if (fallbackDecryptionSecret == null || fallbackDecryptionSecret.length == 0) {
+    if (fallbackDecryptionSecret == null
+        || fallbackDecryptionSecret.length == 0
+        || Arrays.equals(secret, fallbackDecryptionSecret)) {
       fallbackSecretKeySpec = null;
     } else {
       validateSecret(fallbackDecryptionSecret);

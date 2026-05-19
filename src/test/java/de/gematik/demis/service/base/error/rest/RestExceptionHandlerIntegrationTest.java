@@ -56,8 +56,8 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -97,7 +97,7 @@ class RestExceptionHandlerIntegrationTest {
 
   @Test
   void validRequest_ServiceException() throws Exception {
-    final HttpStatus status = HttpStatus.UNPROCESSABLE_ENTITY;
+    final HttpStatus status = HttpStatus.UNPROCESSABLE_CONTENT;
     final String errorCode = "56a";
     final String message = "my detail";
     Mockito.doThrow(new ServiceException(status, errorCode, message)).when(service).doSomething();
@@ -106,7 +106,7 @@ class RestExceptionHandlerIntegrationTest {
 
   @Test
   void validRequest_ResponseStatusException() throws Exception {
-    final HttpStatus expectedStatus = HttpStatus.I_AM_A_TEAPOT;
+    final HttpStatus expectedStatus = BAD_REQUEST;
     doThrow(new ResponseStatusException(expectedStatus)).when(service).doSomething();
     validRequest().andExpectAll(matchErrorResponse(expectedStatus));
   }
@@ -193,7 +193,7 @@ class RestExceptionHandlerIntegrationTest {
 
   @Test
   void errorCounter() throws Exception {
-    final HttpStatus status = HttpStatus.UNPROCESSABLE_ENTITY;
+    final HttpStatus status = HttpStatus.UNPROCESSABLE_CONTENT;
     final String errorCode = "56a";
     final String message = "my detail";
     final String sender = "ME";

@@ -2,6 +2,10 @@
 
 # Release notes service-base
 
+## Release 3.0.0
+- upgraded to spring boot 4 (minor breaking change)
+- minor improvement in AESEncryption
+
 ## Release 2.15.0
 - added ReleaseNotes check to pipelines
 - new cryptography services for hash and aes de/encryption

@@ -43,9 +43,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.cloud.contract.wiremock.AutoConfigureWireMock;
 import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.test.annotation.DirtiesContext;
+import org.wiremock.spring.EnableWireMock;
 
 @SpringBootTest(
     classes = CodeMappingServiceFhirCoreSplitIntegrationTest.TestApplication.class,
@@ -60,7 +60,7 @@ import org.springframework.test.annotation.DirtiesContext;
       "demis.codemapping.fhir-package-headers[1]=pkg-b",
       "feature.flag.fhir.core.split=true"
     })
-@AutoConfigureWireMock(port = 0)
+@EnableWireMock
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class CodeMappingServiceFhirCoreSplitIntegrationTest {
 

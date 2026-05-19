@@ -41,7 +41,7 @@ public interface SampleFeignClient {
 
   @PostMapping("/test")
   @HttpStatusExceptionMapping(
-      status = HttpStatus.UNPROCESSABLE_ENTITY,
+      status = HttpStatus.UNPROCESSABLE_CONTENT,
       exception = MyException.class)
   MyResult withExceptionMappingAnnotation();
 

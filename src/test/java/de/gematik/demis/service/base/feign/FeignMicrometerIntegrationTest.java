@@ -42,11 +42,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.test.autoconfigure.actuate.observability.AutoConfigureObservability;
+import org.springframework.boot.micrometer.tracing.test.autoconfigure.AutoConfigureTracing;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.cloud.contract.wiremock.AutoConfigureWireMock;
 import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.context.annotation.Bean;
+import org.wiremock.spring.EnableWireMock;
 
 @SpringBootTest(
     classes = FeignMicrometerIntegrationTest.TestApp.class,
@@ -54,8 +54,8 @@ import org.springframework.context.annotation.Bean;
       "sample-client.url=http://localhost:${wiremock.server.port}",
       "spring.config.import=classpath:/base-config-application.yaml"
     })
-@AutoConfigureWireMock(port = 0)
-@AutoConfigureObservability
+@EnableWireMock
+@AutoConfigureTracing
 @Slf4j
 class FeignMicrometerIntegrationTest {
 

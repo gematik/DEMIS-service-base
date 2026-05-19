@@ -33,14 +33,12 @@ import io.micrometer.observation.tck.TestObservationRegistry;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.test.autoconfigure.actuate.observability.AutoConfigureObservability;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest(
     classes = ObserverAspectIntegrationTest.TestApp.class,
     webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @EnableTestObservation
-@AutoConfigureObservability
 class ObserverAspectIntegrationTest {
 
   @Autowired MyService service;
