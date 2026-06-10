@@ -27,32 +27,23 @@ package de.gematik.demis.service.base.feign;
  * #L%
  */
 
-import de.gematik.demis.service.base.feign.annotations.ErrorCode;
-import de.gematik.demis.service.base.feign.annotations.HttpStatusExceptionMapping;
-import org.springframework.cloud.openfeign.FeignClient;
-import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.AutoConfigureAfter;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.cloud.openfeign.FeignAutoConfiguration;
+import org.springframework.cloud.openfeign.FeignClientFactory;
+import org.springframework.context.annotation.Bean;
 
-@FeignClient(name = "myRestClient", url = "${sample-client.url}")
-public interface SampleFeignClient {
+@AutoConfiguration
+@AutoConfigureAfter(FeignAutoConfiguration.class)
+@ConditionalOnClass(FeignClientFactory.class)
+public class FeignEagerInitAutoConfiguration {
 
-  @PostMapping("/test")
-  MyResult standardRequest();
-
-  @PostMapping("/test-with-body")
-  MyResult standardRequest(MyRequest request);
-
-  @PostMapping("/test")
-  @HttpStatusExceptionMapping(
-      status = HttpStatus.UNPROCESSABLE_CONTENT,
-      exception = MyException.class)
-  MyResult withExceptionMappingAnnotation();
-
-  @PostMapping("/test")
-  @ErrorCode("rc-005")
-  MyResult withErrorCodeAnnotation();
-
-  record MyResult(String result) {}
-
-  record MyRequest(String body) {}
+  @ConditionalOnBean(FeignClientFactory.class)
+  @Bean
+  public FeignHttpMessageConverterInitializer feignHttpMessageConverterInitializer(
+      final FeignClientFactory feignClientFactory) {
+    return new FeignHttpMessageConverterInitializer(feignClientFactory);
+  }
 }
