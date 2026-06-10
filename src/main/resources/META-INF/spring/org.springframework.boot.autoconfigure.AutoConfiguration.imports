@@ -1,5 +1,6 @@
 de.gematik.demis.service.base.error.rest.ErrorHandlerConfiguration
 de.gematik.demis.service.base.feign.FeignAnnotationsConfiguration
+de.gematik.demis.service.base.feign.FeignEagerInitAutoConfiguration
 de.gematik.demis.service.base.feign.FeignMicrometerConfiguration
 de.gematik.demis.service.base.feign.FeignHeadersForwardingConfiguration
 de.gematik.demis.service.base.logging.LoggingConfiguration

@@ -2,6 +2,9 @@
 
 # Release notes service-base
 
+## Release 3.0.1
+- workaround to avoid a feign bug (issues 1307 and 1371)
+
 ## Release 3.0.0
 - upgraded to spring boot 4 (minor breaking change)
 - minor improvement in AESEncryption
