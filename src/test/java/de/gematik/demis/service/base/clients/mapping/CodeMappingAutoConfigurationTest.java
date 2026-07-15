@@ -27,6 +27,7 @@ package de.gematik.demis.service.base.clients.mapping;
  * #L%
  */
 
+import static de.gematik.demis.service.base.clients.mapping.CodeMappingServiceTest.DEFAULT_FHIR_PACKAGE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
@@ -53,7 +54,8 @@ class CodeMappingAutoConfigurationTest {
       props.getClient().setBaseUrl("http://example");
       props.getClient().setContextPath("/");
       props.setConceptMaps(List.of("DiseaseA", "LabA"));
-      return new CodeMappingService(client, props, ReloadableCache::new, false);
+      props.setFhirPackageHeaders(List.of(DEFAULT_FHIR_PACKAGE));
+      return new CodeMappingService(client, props, ReloadableCache::new);
     }
   }
 

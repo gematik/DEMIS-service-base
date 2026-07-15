@@ -5,7 +5,7 @@
 
     <groupId>de.gematik.demis</groupId>
     <artifactId>service-base</artifactId>
-    <version>3.0.1</version>
+    <version>3.1.0</version>
     <name>service-base</name>
     <description>library implementing some cross-cutting concerns like error handling for spring boot services</description>
     <url>https://github.com/gematik/DEMIS-service-base</url>
@@ -24,7 +24,7 @@
         <maven.compiler.target>25</maven.compiler.target>
 
         <java.version>25</java.version>
-        <spring-boot.version>4.0.6</spring-boot.version>
+        <spring-boot.version>4.0.7</spring-boot.version>
         <spring-cloud.version>2025.1.1</spring-cloud.version>
         <aspectj.version>1.9.25</aspectj.version>
         <springdoc.version>2.8.14</springdoc.version>
