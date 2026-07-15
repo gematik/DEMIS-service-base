@@ -27,7 +27,6 @@ package de.gematik.demis.service.base.clients.mapping;
  * #L%
  */
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -53,10 +52,7 @@ public class CodeMappingAutoConfiguration {
   @Bean
   @ConditionalOnMissingBean
   CodeMappingService codeMappingService(
-      final CodeMappingClient codeMappingClient,
-      final CodeMappingProperties properties,
-      @Value("${feature.flag.fhir.core.split:false}") final boolean fhirCoreSplitEnabled) {
-    return new CodeMappingService(
-        codeMappingClient, properties, ReloadableCache::new, fhirCoreSplitEnabled);
+      final CodeMappingClient codeMappingClient, final CodeMappingProperties properties) {
+    return new CodeMappingService(codeMappingClient, properties, ReloadableCache::new);
   }
 }

@@ -2,6 +2,9 @@
 
 # Release notes service-base
 
+## Release 3.1.0
+- removed FEATURE_FLAG_FHIR_CORE_SPLIT and fallback routing without FHIR package header
+
 ## Release 3.0.1
 - workaround to avoid a feign bug (issues 1307 and 1371)
 

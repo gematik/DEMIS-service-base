@@ -36,28 +36,10 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestHeader;
 
-/**
- * Feign client for retrieving concept maps from the Code Mapping Service.
- *
- * <p>Provides two endpoints: a legacy call without routing header and a package-based call using
- * the {@code x-fhir-package} header for FHIR core split routing. In default mode the service tries
- * the header-based call first and falls back to the legacy call on HTTP 403, ensuring compatibility
- * during the Istio routing transition.
- */
+/** Feign client for retrieving concept maps from the Code Mapping Service. */
 @FeignClient(name = "codeMappingClient", url = "${demis.codemapping.client.base-url}")
 @ConditionalOnProperty(name = "demis.codemapping.enabled", havingValue = "true")
 public interface CodeMappingClient {
-
-  /**
-   * Retrieves the concept map without any routing header (legacy mode).
-   *
-   * @param conceptName the name of the concept map
-   * @return key-value pairs representing the concept map
-   */
-  @GetMapping(
-      value = "${demis.codemapping.client.context-path}conceptmap/{name}",
-      produces = APPLICATION_JSON_VALUE)
-  Map<String, String> getConceptMap(@PathVariable("name") String conceptName);
 
   /**
    * Retrieves the concept map, routing via the {@code x-fhir-package} header.
@@ -69,7 +51,7 @@ public interface CodeMappingClient {
   @GetMapping(
       value = "${demis.codemapping.client.context-path}conceptmap/{name}",
       produces = APPLICATION_JSON_VALUE)
-  Map<String, String> getConceptMapWithPackageHeader(
+  Map<String, String> getConceptMap(
       @PathVariable("name") String conceptName,
       @RequestHeader("x-fhir-package") String fhirPackage);
 }

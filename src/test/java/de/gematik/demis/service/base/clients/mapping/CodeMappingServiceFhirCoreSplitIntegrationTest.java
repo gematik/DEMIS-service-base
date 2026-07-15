@@ -57,8 +57,7 @@ import org.wiremock.spring.EnableWireMock;
       "demis.codemapping.concept-maps[0]=DiseaseA",
       "demis.codemapping.concept-maps[1]=LabA",
       "demis.codemapping.fhir-package-headers[0]=pkg-a",
-      "demis.codemapping.fhir-package-headers[1]=pkg-b",
-      "feature.flag.fhir.core.split=true"
+      "demis.codemapping.fhir-package-headers[1]=pkg-b"
     })
 @EnableWireMock
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)

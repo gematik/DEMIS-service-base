@@ -45,9 +45,9 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  *       service.
  *   <li>{@code conceptMaps} – names of the concept maps to load.
  *   <li>{@code fhirPackageHeaders} – list of {@code x-fhir-package} header values used to route
- *       requests to the Code Mapping Service. In FHIR core split mode at least one value must be
- *       configured; in default mode the first value is used (falls back to {@code
- *       DEFAULT_FHIR_PACKAGE} when the list is empty).
+ *       requests to the Code Mapping Service. At least one value must be configured; in default
+ *       mode the first value is used (falls back to {@code DEFAULT_FHIR_PACKAGE} when the list is
+ *       empty).
  * </ul>
  */
 @Getter
