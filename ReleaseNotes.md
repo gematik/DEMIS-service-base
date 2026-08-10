@@ -2,6 +2,9 @@
 
 # Release notes service-base
 
+## Release 3.1.1
+- added header x-sender to default headers of HeadersForwardingRequestInterceptor
+
 ## Release 3.1.0
 - removed FEATURE_FLAG_FHIR_CORE_SPLIT and fallback routing without FHIR package header
 
