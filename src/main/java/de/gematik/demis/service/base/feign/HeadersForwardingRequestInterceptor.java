@@ -149,7 +149,8 @@ public final class HeadersForwardingRequestInterceptor implements RequestInterce
           "x-fhir-package",
           "x-fhir-package-version",
           "x-api-version",
-          "x-fhir-api-submission-type");
+          "x-fhir-api-submission-type",
+          "x-sender");
 
   private final Set<String> headersToForward;
 
