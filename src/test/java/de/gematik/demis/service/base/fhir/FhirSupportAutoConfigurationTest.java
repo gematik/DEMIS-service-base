@@ -31,6 +31,7 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import ca.uhn.fhir.context.FhirContext;
+import de.gematik.demis.service.base.fhir.cleanup.ExtensionCleanupService;
 import de.gematik.demis.service.base.fhir.outcome.FhirOperationOutcomeProperties;
 import de.gematik.demis.service.base.fhir.outcome.FhirOperationOutcomeService;
 import de.gematik.demis.service.base.fhir.response.FhirResponseConverter;
@@ -67,6 +68,8 @@ class FhirSupportAutoConfigurationTest {
           .isInstanceOf(NoSuchBeanDefinitionException.class);
       assertThatThrownBy(() -> applicationContext.getBean(FhirOperationOutcomeProperties.class))
           .isInstanceOf(NoSuchBeanDefinitionException.class);
+      assertThatThrownBy(() -> applicationContext.getBean(ExtensionCleanupService.class))
+          .isInstanceOf(NoSuchBeanDefinitionException.class);
     }
   }
 
@@ -88,6 +91,8 @@ class FhirSupportAutoConfigurationTest {
       assertThatCode(() -> applicationContext.getBean(FhirResponseConverterProperties.class))
           .doesNotThrowAnyException();
       assertThatCode(() -> applicationContext.getBean(FhirOperationOutcomeProperties.class))
+          .doesNotThrowAnyException();
+      assertThatCode(() -> applicationContext.getBean(ExtensionCleanupService.class))
           .doesNotThrowAnyException();
     }
   }

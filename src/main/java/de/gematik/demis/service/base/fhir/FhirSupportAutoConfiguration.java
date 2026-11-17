@@ -28,6 +28,7 @@ package de.gematik.demis.service.base.fhir;
  */
 
 import ca.uhn.fhir.context.FhirContext;
+import de.gematik.demis.service.base.fhir.cleanup.ExtensionCleanupService;
 import de.gematik.demis.service.base.fhir.outcome.FhirOperationOutcomeProperties;
 import de.gematik.demis.service.base.fhir.outcome.FhirOperationOutcomeService;
 import de.gematik.demis.service.base.fhir.response.FhirResponseConverter;
@@ -44,7 +45,11 @@ import org.springframework.context.annotation.Import;
 @ConditionalOnClass(FhirContext.class)
 @ConditionalOnProperty(value = "base.fhir.enabled", havingValue = "true", matchIfMissing = false)
 @AutoConfiguration
-@Import({FhirResponseConverter.class, FhirOperationOutcomeService.class})
+@Import({
+  FhirResponseConverter.class,
+  FhirOperationOutcomeService.class,
+  ExtensionCleanupService.class
+})
 @EnableConfigurationProperties({
   FhirOperationOutcomeProperties.class,
   FhirResponseConverterProperties.class
