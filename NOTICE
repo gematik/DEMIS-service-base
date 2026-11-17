@@ -126,7 +126,6 @@ This project includes:
   JUnit Platform Commons under Eclipse Public License v2.0
   JUnit Platform Engine API under Eclipse Public License v2.0
   Kotlin Stdlib under Apache-2.0
-  LatencyUtils under Public Domain, per Creative Commons CC0
   Log4j API to SLF4J Adapter under Apache-2.0
   Logback Classic Module under EPL-2.0 or LGPL-2.1-only
   Logback Core Module under EPL-2.0 or LGPL-2.1-only
@@ -173,7 +172,6 @@ This project includes:
   spring-boot-autoconfigure under Apache License, Version 2.0
   spring-boot-configuration-metadata under Apache License, Version 2.0
   spring-boot-configuration-processor under Apache License, Version 2.0
-  spring-boot-http-client under Apache License, Version 2.0
   spring-boot-http-converter under Apache License, Version 2.0
   spring-boot-jackson under Apache License, Version 2.0
   spring-boot-micrometer-metrics under Apache License, Version 2.0
@@ -184,7 +182,6 @@ This project includes:
   spring-boot-micrometer-tracing-test under Apache License, Version 2.0
   spring-boot-opentelemetry under Apache License, Version 2.0
   spring-boot-properties-migrator under Apache License, Version 2.0
-  spring-boot-restclient under Apache License, Version 2.0
   spring-boot-resttestclient under Apache License, Version 2.0
   spring-boot-servlet under Apache License, Version 2.0
   spring-boot-starter under Apache License, Version 2.0

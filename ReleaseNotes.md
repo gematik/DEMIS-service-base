@@ -2,6 +2,10 @@
 
 # Release notes service-base
 
+## Release 3.2.0
+- Updated minor/patch versions of dependencies
+- new service to remove unexpected extensions (including referenced orphaned resources) in fhir bundles
+
 ## Release 3.1.1
 - added header x-sender to default headers of HeadersForwardingRequestInterceptor
 
