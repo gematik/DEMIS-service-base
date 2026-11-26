@@ -74,12 +74,6 @@ class ExtensionRemover {
   List<Extension> remove(final Bundle bundle, final Set<String> locations) {
     // phase 1: resolve everything against the untouched bundle
     final List<ExtensionWithParent> extensions = extensionResolver.resolve(bundle, locations);
-    if (extensions.size() < locations.size()) {
-      log.error(
-          "{} of {} unexpected extension(s) reported by the validation service could not be resolved",
-          locations.size() - extensions.size(),
-          locations.size());
-    }
 
     // phase 2: remove by identity, so the indexes resolved in phase 1 cannot shift
     final List<Extension> removed = new ArrayList<>(extensions.size());

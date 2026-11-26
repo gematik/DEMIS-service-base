@@ -27,19 +27,28 @@ package de.gematik.demis.service.base.fhir.cleanup;
  * #L%
  */
 
+import de.gematik.demis.service.base.error.ServiceException;
 import de.gematik.demis.service.base.fhir.cleanup.OrphanedResourceRemover.RemovedEntry;
+import jakarta.annotation.PostConstruct;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import lombok.AccessLevel;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Coding;
 import org.hl7.fhir.r4.model.Extension;
 import org.hl7.fhir.r4.model.OperationOutcome;
+import org.hl7.fhir.r4.model.OperationOutcome.OperationOutcomeIssueComponent;
 import org.hl7.fhir.r4.model.StringType;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 /**
@@ -69,6 +78,12 @@ public class ExtensionCleanupService {
   /** Issue code the validation service uses for unexpected extensions. */
   private static final String UNEXPECTED_EXTENSION_CODE = "Unexpected_Extension";
 
+  /** Error code of the {@link ServiceException} thrown if the cleanup fails. */
+  private static final String ERROR_CODE_CLEANUP_FAILED = "EXTENSION_CLEANUP_FAILED";
+
+  private static final String ERROR_MESSAGE_CLEANUP_FAILED =
+      "Meldung konnte nicht verarbeitet werden wegen Fehler bei Behandlung der Extensions.";
+
   private static final String OUTCOME_DIAGNOSTICS_REMOVED_EXTENSIONS =
       "%d unerwartete Extension(s) wurden entfernt";
   private static final String OUTCOME_DIAGNOSTICS_REMOVED_RESOURCE =
@@ -77,17 +92,43 @@ public class ExtensionCleanupService {
   private final ExtensionRemover extensionRemover;
   private final OrphanedResourceRemover orphanedResourceRemover;
 
+  @Getter(AccessLevel.PACKAGE)
+  @Setter(AccessLevel.PACKAGE)
+  @Value("${feature.flag.extension-cleanup-fail-on-error:false}")
+  private boolean failOnError;
+
+  @PostConstruct
+  void logFF() {
+    if (failOnError) {
+      log.info(
+          "'FEATURE_FLAG_ERROR_ON_EXTENSION_PROCESSING_ENABLED' is enabled: if the cleanup of unexpected extensions fails, a ServiceException (HTTP status 422) is thrown.");
+    }
+  }
+
   /**
    * Removes all extensions from the bundle that are reported as unexpected in the validation
    * outcome. If at least one removed extension contained a resource reference, the resources that
    * became orphaned by the removal are removed from the bundle as well.
    *
+   * <p>The method is lenient by default: if a location cannot be resolved or an unexpected error
+   * occurs, it is logged and processing continues with the (possibly partially cleaned) bundle.
+   * Only if the feature flag {@code feature.flag.extension-cleanup-fail-on-error} is enabled, such
+   * problems are escalated as {@link ServiceException}. This is the current behavior only: in the
+   * future, a {@link ServiceException} will always be thrown and the feature flag will be removed.
+   *
+   * <p>Nothing happens if {@code bundle} or {@code validationOutcome} is {@code null} or the
+   * outcome reports no unexpected extensions.
+   *
    * <p><strong>Must be called before any other modification of the bundle, otherwise the element
    * indexes contained in the validation locations no longer match the bundle.</strong>
    *
    * @param bundle the bundle to clean, is modified in place
-   * @param validationOutcome the outcome of the fhir validation, receives a warning for each
-   *     removed resource
+   * @param validationOutcome the outcome of the fhir validation, receives an additional warning
+   *     issue for the removed extensions and for each removed resource
+   * @throws ServiceException with status {@code 422 (UNPROCESSABLE_CONTENT)} and error code {@code
+   *     EXTENSION_CLEANUP_FAILED}, only if {@code feature.flag.extension-cleanup-fail-on-error} is
+   *     {@code true} and an unexpected extension has no location, could not be resolved / removed,
+   *     or the cleanup failed with a runtime error
    */
   public void cleanupUnexpectedExtensions(
       final Bundle bundle, final OperationOutcome validationOutcome) {
@@ -102,6 +143,13 @@ public class ExtensionCleanupService {
       }
 
       final List<Extension> removedExtensions = extensionRemover.remove(bundle, locations);
+      if (removedExtensions.size() < locations.size()) {
+        log.error(
+            "{} of {} unexpected extension(s) reported by the validation service could not be resolved / removed",
+            locations.size() - removedExtensions.size(),
+            locations.size());
+        failIfConfigured();
+      }
       if (removedExtensions.isEmpty()) {
         return;
       }
@@ -111,10 +159,23 @@ public class ExtensionCleanupService {
           orphanedResourceRemover.removeReferencedResourcesIfOrphaned(bundle, removedExtensions);
       addOperationOutcomeWarningsForRemovedResources(
           validationOutcome, removedResourceEntries, locations);
+    } catch (final ServiceException e) {
+      throw e;
     } catch (final RuntimeException e) {
       log.error(
-          "error removing unexpected extensions (including orphaned resources). Ignore and proceed processing",
+          "error removing unexpected extensions (including orphaned resources). {}",
+          failOnError ? "Abort processing" : "Ignore and proceed processing",
           e);
+      failIfConfigured();
+    }
+  }
+
+  private void failIfConfigured() {
+    if (failOnError) {
+      throw new ServiceException(
+          HttpStatus.UNPROCESSABLE_CONTENT,
+          ERROR_CODE_CLEANUP_FAILED,
+          ERROR_MESSAGE_CLEANUP_FAILED);
     }
   }
 
@@ -126,11 +187,29 @@ public class ExtensionCleanupService {
                     && issue.getDetails().getCoding().stream()
                         .map(Coding::getCode)
                         .anyMatch(UNEXPECTED_EXTENSION_CODE::equals))
-        .flatMap(issue -> issue.getLocation().stream())
-        .map(StringType::getValue)
-        .filter(location -> location != null && !location.isBlank())
-        .map(String::trim)
+        .map(this::firstLocation)
+        .flatMap(Optional::stream)
         .collect(Collectors.toCollection(LinkedHashSet::new));
+  }
+
+  /** The first non-empty location is the path of the extension, further entries are ignored. */
+  private Optional<String> firstLocation(final OperationOutcomeIssueComponent issue) {
+    final Optional<String> location =
+        issue.getLocation().stream()
+            .map(StringType::getValue)
+            .filter(value -> value != null && !value.isBlank())
+            .findFirst()
+            .map(String::trim);
+    if (location.isEmpty()) {
+      log.error(
+          "Unexpected extension reported by the validation service without a location: severity={}, code={}, details={}, diagnostics={}",
+          issue.getSeverity(),
+          issue.getCode(),
+          issue.getDetails().getCodingFirstRep().getCode(),
+          issue.getDiagnostics());
+      failIfConfigured();
+    }
+    return location;
   }
 
   private void addOperationOutcomeWarningForRemovedExtensions(
