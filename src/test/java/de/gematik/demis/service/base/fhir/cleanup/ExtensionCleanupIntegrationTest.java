@@ -41,13 +41,16 @@ import static de.gematik.demis.service.base.fhir.cleanup.ExtensionTestFixtures.p
 import static de.gematik.demis.service.base.fhir.cleanup.ExtensionTestFixtures.referenceExtension;
 import static de.gematik.demis.service.base.fhir.cleanup.ExtensionTestFixtures.unexpectedExtensionOutcome;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
+import de.gematik.demis.service.base.error.ServiceException;
 import java.util.List;
+import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
 import org.hl7.fhir.r4.model.Composition;
@@ -69,6 +72,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 
 /** Wires the real service, remover and resolver without any mock. */
 class ExtensionCleanupIntegrationTest {
@@ -354,6 +358,21 @@ class ExtensionCleanupIntegrationTest {
     }
 
     @Test
+    void shouldNeverRemoveTheRootComposition() {
+      patient.getExtension().clear();
+      patient.addExtension(referenceExtension(UNEXPECTED, new Reference(composition)));
+      final Bundle bundle = bundleOf(composition, patient, observation);
+      final OperationOutcome outcome = unexpectedExtensionOutcome(PATIENT_EXTENSION);
+
+      underTest.cleanupUnexpectedExtensions(bundle, outcome);
+
+      assertThat(resourcesOf(bundle)).containsExactly(composition, patient, observation);
+      assertThat(removedResourceWarnings(outcome)).isEmpty();
+      assertThat(patient.getExtension()).isEmpty();
+      assertRemovedExtensionsWarning(outcome, 1);
+    }
+
+    @Test
     void shouldRemoveWholeIslandBehindTheRemovedReference() {
       final Practitioner practitioner = new Practitioner();
       observation.addPerformer(new Reference(practitioner));
@@ -369,6 +388,86 @@ class ExtensionCleanupIntegrationTest {
           .satisfiesExactlyInAnyOrder(
               issue -> assertRemovedResourceIssue(issue, "Observation", "Bundle.entry[2]"),
               issue -> assertRemovedResourceIssue(issue, "Practitioner", "Bundle.entry[3]"));
+    }
+  }
+
+  /** Behavior with the feature flag, the default (flag off) is covered by the other tests. */
+  @Nested
+  class FailOnError {
+
+    private ExtensionCleanupService strict() {
+      final ExtensionCleanupService service =
+          new ExtensionCleanupService(
+              new ExtensionRemover(new ExtensionResolver()), new OrphanedResourceRemover());
+      service.setFailOnError(true);
+      return service;
+    }
+
+    private static void assertUnprocessable(final ThrowingCallable callable) {
+      assertThatThrownBy(callable)
+          .isInstanceOfSatisfying(
+              ServiceException.class,
+              e -> {
+                assertThat(e.getResponseStatus()).isEqualTo(HttpStatus.UNPROCESSABLE_CONTENT);
+                assertThat(e.getErrorCode()).isEqualTo("EXTENSION_CLEANUP_FAILED");
+              });
+    }
+
+    @Test
+    void shouldIgnoreFurtherLocationsOfAnIssue() {
+      final Patient patient = patient();
+      patient.addExtension(extension(UNEXPECTED));
+      final Bundle bundle = bundleWithPatient(patient);
+      final OperationOutcome outcome =
+          unexpectedExtensionOutcome("Bundle.entry[1].resource.extension[0]");
+      // ignored, only the first location of an issue is used
+      outcome.getIssueFirstRep().addLocation("Line[3] Col[7]");
+
+      strict().cleanupUnexpectedExtensions(bundle, outcome);
+
+      assertThat(patient.getExtension()).isEmpty();
+      assertRemovedExtensionsWarning(outcome, 1);
+    }
+
+    // a valid extension location is "Bundle.entry[1].resource.extension[0]"
+    @ParameterizedTest
+    @ValueSource(
+        strings = {
+          // not a valid path
+          "not a path",
+          "Bundle",
+          "Patient.extension[0]",
+          "Bundle.entry[1].resource.extension[a]",
+          // does not point to an extension
+          "Bundle.entry[1].resource.name[0]",
+          "Bundle.entry[1].resource.extension",
+          // path cannot be resolved
+          "Bundle.entry[99].resource.extension[0]",
+          "Bundle.entry[1].resource.unknown.extension[0]",
+          // parent element cannot hold extensions (Bundle implements no IBaseHasExtensions)
+          "Bundle.extension[0]",
+          // extension index out of range
+          "Bundle.entry[1].resource.extension[5]"
+        })
+    void shouldThrowIfLocationCannotBeResolved(final String location) {
+      final Patient patient = patient();
+      patient.addExtension(extension(UNEXPECTED));
+      final Bundle bundle = bundleWithPatient(patient);
+      final OperationOutcome outcome = unexpectedExtensionOutcome(location);
+
+      assertUnprocessable(() -> strict().cleanupUnexpectedExtensions(bundle, outcome));
+    }
+
+    @Test
+    void shouldThrowIfOrphanRemovalFails() {
+      final Patient patient = patient();
+      // the bundle has no Composition, so the orphan detection has no starting point and fails
+      patient.addExtension(referenceExtension(UNEXPECTED, new Reference(observation())));
+      final Bundle bundle = bundleOf(patient);
+      final OperationOutcome outcome =
+          unexpectedExtensionOutcome("Bundle.entry[0].resource.extension[0]");
+
+      assertUnprocessable(() -> strict().cleanupUnexpectedExtensions(bundle, outcome));
     }
   }
 }

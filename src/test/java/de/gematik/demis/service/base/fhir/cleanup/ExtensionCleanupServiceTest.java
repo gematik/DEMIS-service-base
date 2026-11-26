@@ -36,12 +36,15 @@ import static de.gematik.demis.service.base.fhir.cleanup.ExtensionTestFixtures.p
 import static de.gematik.demis.service.base.fhir.cleanup.ExtensionTestFixtures.unexpectedExtensionOutcome;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import de.gematik.demis.service.base.error.ServiceException;
 import de.gematik.demis.service.base.fhir.cleanup.OrphanedResourceRemover.RemovedEntry;
 import java.util.List;
 import java.util.Set;
@@ -50,12 +53,17 @@ import org.hl7.fhir.r4.model.Extension;
 import org.hl7.fhir.r4.model.OperationOutcome;
 import org.hl7.fhir.r4.model.OperationOutcome.OperationOutcomeIssueComponent;
 import org.hl7.fhir.r4.model.StringType;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.Parameter;
+import org.junit.jupiter.params.ParameterizedClass;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
 
 @ExtendWith(MockitoExtension.class)
 class ExtensionCleanupServiceTest {
@@ -102,6 +110,19 @@ class ExtensionCleanupServiceTest {
     }
 
     @Test
+    void shouldUseFirstNonEmptyLocationOfIssueAndIgnoreFurtherOnes() {
+      final OperationOutcome outcome = new OperationOutcome();
+      addUnexpectedExtensionIssue(outcome, LOCATION_0);
+      final OperationOutcomeIssueComponent issue = outcome.getIssueFirstRep();
+      issue.getLocation().addFirst(new StringType(" "));
+      issue.addLocation("Line[3] Col[7]");
+
+      underTest.cleanupUnexpectedExtensions(bundle, outcome);
+
+      verify(extensionRemover).remove(bundle, Set.of(LOCATION_0));
+    }
+
+    @Test
     void shouldPassDuplicatedLocationOnlyOnce() {
       underTest.cleanupUnexpectedExtensions(
           bundle, unexpectedExtensionOutcome(LOCATION_0, LOCATION_0));
@@ -111,7 +132,16 @@ class ExtensionCleanupServiceTest {
   }
 
   @Nested
+  @ParameterizedClass
+  @ValueSource(booleans = {true, false})
   class NothingToDo {
+
+    @Parameter boolean failOnError;
+
+    @BeforeEach
+    void configureFlag() {
+      underTest.setFailOnError(failOnError);
+    }
 
     @Test
     void shouldDoNothingWithoutUnexpectedExtensionIssues() {
@@ -176,18 +206,6 @@ class ExtensionCleanupServiceTest {
     private static final String RESOURCE_WARNING_TEXT =
         "Resource '%s' wurde aus dem Bundle entfernt, da sie nicht mehr referenziert wird.";
 
-    /** Runs the cleanup and returns the issues that were not part of the outcome before. */
-    private List<OperationOutcomeIssueComponent> executeTestAndGetAddedIssues(
-        final OperationOutcome outcome) {
-      final List<OperationOutcomeIssueComponent> issuesBefore = outcome.copy().getIssue();
-
-      underTest.cleanupUnexpectedExtensions(bundle, outcome);
-
-      return outcome.getIssue().stream()
-          .filter(issue -> issuesBefore.stream().noneMatch(issue::equalsDeep))
-          .toList();
-    }
-
     private static void assertExtensionWarning(
         final OperationOutcomeIssueComponent issue, final int removedExtensions) {
       assertWarning(issue, EXTENSION_WARNING_TEXT.formatted(removedExtensions));
@@ -210,6 +228,18 @@ class ExtensionCleanupServiceTest {
       assertThat(issue.getLocation())
           .extracting(StringType::getValue)
           .containsExactly(expectedLocations);
+    }
+
+    /** Runs the cleanup and returns the issues that were not part of the outcome before. */
+    private List<OperationOutcomeIssueComponent> executeTestAndGetAddedIssues(
+        final OperationOutcome outcome) {
+      final List<OperationOutcomeIssueComponent> issuesBefore = outcome.copy().getIssue();
+
+      underTest.cleanupUnexpectedExtensions(bundle, outcome);
+
+      return outcome.getIssue().stream()
+          .filter(issue -> issuesBefore.stream().noneMatch(issue::equalsDeep))
+          .toList();
     }
 
     @Test
@@ -298,34 +328,165 @@ class ExtensionCleanupServiceTest {
   @Nested
   class ErrorHandling {
 
-    @Test
-    void shouldCatchExceptionOfRemover() {
-      when(extensionRemover.remove(any(), any())).thenThrow(new IllegalStateException("test"));
+    private List<Extension> removedExtensions;
 
-      final OperationOutcome outcome = unexpectedExtensionOutcome(LOCATION_0);
-      assertThatCode(() -> underTest.cleanupUnexpectedExtensions(bundle, outcome))
-          .doesNotThrowAnyException();
+    private void assertUnprocessable(final OperationOutcome outcome) {
+      assertThatThrownBy(() -> underTest.cleanupUnexpectedExtensions(bundle, outcome))
+          .isInstanceOfSatisfying(
+              ServiceException.class,
+              e -> {
+                assertThat(e.getResponseStatus()).isEqualTo(HttpStatus.UNPROCESSABLE_CONTENT);
+                assertThat(e.getErrorCode()).isEqualTo("EXTENSION_CLEANUP_FAILED");
+                assertThat(e.getMessage()).isNotBlank();
+              });
     }
 
-    @Test
-    void shouldNotRemoveOrphanedResourcesIfExtensionRemovalFails() {
+    private OperationOutcome givenRemoverThrows() {
       when(extensionRemover.remove(any(), any())).thenThrow(new IllegalStateException("test"));
-
-      underTest.cleanupUnexpectedExtensions(bundle, unexpectedExtensionOutcome(LOCATION_0));
-
-      verifyNoInteractions(orphanedResourceRemover);
+      return unexpectedExtensionOutcome(LOCATION_0);
     }
 
-    @Test
-    void shouldCatchExceptionOfOrphanedResourceRemover() {
+    private OperationOutcome givenOrphanedResourceRemoverThrows() {
       when(extensionRemover.remove(any(), any())).thenReturn(List.of(extension(UNEXPECTED)));
       doThrow(new IllegalStateException("test"))
           .when(orphanedResourceRemover)
           .removeReferencedResourcesIfOrphaned(any(), any());
+      return unexpectedExtensionOutcome(LOCATION_0);
+    }
 
+    private OperationOutcome givenOnlySomeExtensionsWereRemoved() {
+      removedExtensions = List.of(extension(UNEXPECTED));
+      when(extensionRemover.remove(bundle, Set.of(LOCATION_0, LOCATION_1)))
+          .thenReturn(removedExtensions);
+      return unexpectedExtensionOutcome(LOCATION_0, LOCATION_1);
+    }
+
+    private OperationOutcome givenExtensionsCouldNotBeRemoved() {
+      when(extensionRemover.remove(bundle, Set.of(LOCATION_0))).thenReturn(List.of());
+      return unexpectedExtensionOutcome(LOCATION_0);
+    }
+
+    private OperationOutcome givenIssueWithoutLocation() {
       final OperationOutcome outcome = unexpectedExtensionOutcome(LOCATION_0);
-      assertThatCode(() -> underTest.cleanupUnexpectedExtensions(bundle, outcome))
-          .doesNotThrowAnyException();
+      addUnexpectedExtensionIssue(outcome, null);
+      return outcome;
+    }
+
+    @Nested
+    class FlagEnabled {
+
+      @BeforeEach
+      void enableFlag() {
+        underTest.setFailOnError(true);
+      }
+
+      @Test
+      void shouldNotThrowIfAllExtensionsWereRemoved() {
+        when(extensionRemover.remove(bundle, Set.of(LOCATION_0, LOCATION_1)))
+            .thenReturn(List.of(extension(UNEXPECTED), extension(UNEXPECTED)));
+
+        final OperationOutcome outcome = unexpectedExtensionOutcome(LOCATION_0, LOCATION_1);
+        assertThatCode(() -> underTest.cleanupUnexpectedExtensions(bundle, outcome))
+            .doesNotThrowAnyException();
+      }
+
+      @Test
+      void shouldThrowAndSkipOrphansIfOnlySomeExtensionsWereRemoved() {
+        assertUnprocessable(givenOnlySomeExtensionsWereRemoved());
+        verifyNoInteractions(orphanedResourceRemover);
+      }
+
+      @Test
+      void shouldThrowIfExtensionsCouldNotBeRemoved() {
+        assertUnprocessable(givenExtensionsCouldNotBeRemoved());
+      }
+
+      @Test
+      void shouldThrowIfAnIssueHasNoLocation() {
+        assertUnprocessable(givenIssueWithoutLocation());
+        verifyNoInteractions(extensionRemover);
+      }
+
+      @Test
+      void shouldThrowIfRemoverThrows() {
+        assertUnprocessable(givenRemoverThrows());
+      }
+
+      @Test
+      void shouldThrowIfOrphanedResourceRemoverThrows() {
+        assertUnprocessable(givenOrphanedResourceRemoverThrows());
+      }
+
+      @Test
+      void shouldNotExposeCauseInMessage() {
+        final String exceptionCause = "secret detail";
+        when(extensionRemover.remove(any(), any()))
+            .thenThrow(new IllegalStateException(exceptionCause));
+
+        assertThatThrownBy(
+                () ->
+                    underTest.cleanupUnexpectedExtensions(
+                        bundle, unexpectedExtensionOutcome(LOCATION_0)))
+            .hasMessageNotContaining(exceptionCause);
+      }
+    }
+
+    @Nested
+    class FlagDisabled {
+
+      @Test
+      void shouldCatchExceptionOfRemover() {
+        final OperationOutcome outcome = givenRemoverThrows();
+
+        assertThatCode(() -> underTest.cleanupUnexpectedExtensions(bundle, outcome))
+            .doesNotThrowAnyException();
+      }
+
+      @Test
+      void shouldNotRemoveOrphanedResourcesIfExtensionRemovalFails() {
+        underTest.cleanupUnexpectedExtensions(bundle, givenRemoverThrows());
+
+        verifyNoInteractions(orphanedResourceRemover);
+      }
+
+      @Test
+      void shouldCatchExceptionOfOrphanedResourceRemover() {
+        final OperationOutcome outcome = givenOrphanedResourceRemoverThrows();
+
+        assertThatCode(() -> underTest.cleanupUnexpectedExtensions(bundle, outcome))
+            .doesNotThrowAnyException();
+      }
+
+      @Test
+      void shouldNotThrowIfNotAllExtensionsWereRemovedAndProcessRemovedOnes() {
+        final OperationOutcome outcome = givenOnlySomeExtensionsWereRemoved();
+
+        assertThatCode(() -> underTest.cleanupUnexpectedExtensions(bundle, outcome))
+            .doesNotThrowAnyException();
+
+        verify(orphanedResourceRemover)
+            .removeReferencedResourcesIfOrphaned(bundle, removedExtensions);
+        assertThat(outcome.getIssue()).hasSize(3);
+      }
+
+      @Test
+      void shouldNotThrowIfExtensionsCouldNotBeRemoved() {
+        final OperationOutcome outcome = givenExtensionsCouldNotBeRemoved();
+
+        assertThatCode(() -> underTest.cleanupUnexpectedExtensions(bundle, outcome))
+            .doesNotThrowAnyException();
+      }
+
+      @Test
+      void shouldProcessOtherIssuesIfOneHasNoLocation() {
+        final OperationOutcome outcome = givenIssueWithoutLocation();
+
+        assertThatCode(() -> underTest.cleanupUnexpectedExtensions(bundle, outcome))
+            .doesNotThrowAnyException();
+
+        verify(extensionRemover).remove(bundle, Set.of(LOCATION_0));
+        verifyNoMoreInteractions(extensionRemover);
+      }
     }
   }
 }

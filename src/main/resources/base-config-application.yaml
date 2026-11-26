@@ -55,3 +55,4 @@ logging:
 feature:
     flag:
         move-error-id-to-diagnostics: ${FEATURE_FLAG_MOVE_ERROR_ID_TO_DIAGNOSTICS:false}
+        extension-cleanup-fail-on-error: ${FEATURE_FLAG_ERROR_ON_EXTENSION_PROCESSING_ENABLED:false}

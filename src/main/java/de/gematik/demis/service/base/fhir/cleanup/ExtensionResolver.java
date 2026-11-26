@@ -127,8 +127,8 @@ class ExtensionResolver {
       }
 
       return Optional.of(new ExtensionWithParent(extensionParent, extension, location));
-    } catch (final Exception e) {
-      log.error("Could not process validation location '{}': {}", location, e.getMessage());
+    } catch (final Exception ex) {
+      log.error("Could not process validation location '{}'", location, ex);
       return Optional.empty();
     }
   }

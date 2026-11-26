@@ -2,6 +2,9 @@
 
 # Release notes service-base
 
+## Release 3.2.1
+- fail with HTTP 422 if extension cleanup fails (only if `FEATURE_FLAG_ERROR_ON_EXTENSION_PROCESSING_ENABLED` is enabled (default: `false`))
+
 ## Release 3.2.0
 - Updated minor/patch versions of dependencies
 - new service to remove unexpected extensions (including referenced orphaned resources) in fhir bundles
